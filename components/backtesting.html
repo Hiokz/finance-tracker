@@ -1,9 +1,19 @@
 <section id="backtesting-section" class="content-section">
     <div class="header-actions" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
-        <h2>Backtesting Sessions</h2>
-        <button class="btn btn-primary" id="btn-new-backtest">
-            <i class="fa-solid fa-plus"></i> New Backtest
-        </button>
+        <h2 id="bt-section-heading">Backtesting Sessions</h2>
+        <div style="display: flex; gap: 10px; align-items: center;">
+            <!-- Shown on list view -->
+            <button class="btn btn-primary" id="btn-new-backtest">
+                <i class="fa-solid fa-plus"></i> New Backtest
+            </button>
+            <!-- Shown on active session view -->
+            <button class="btn btn-outline" id="btn-close-backtest" style="display: none;">
+                <i class="fa-solid fa-arrow-left"></i> Back to Sessions
+            </button>
+            <button class="btn btn-primary" id="btn-add-backtest-trade" style="display: none;">
+                <i class="fa-solid fa-plus"></i> Log Trade
+            </button>
+        </div>
     </div>
 
     <!-- Active Backtest View (Hidden if no session selected) -->
@@ -40,16 +50,6 @@
                     <p class="sub-text">Total Trades: <span id="bt-total-trades">0</span></p>
                 </div>
             </div>
-        </div>
-        
-        <div class="header-actions" style="margin-bottom: 16px;">
-            <h3 id="bt-session-title">Session Trades</h3>
-            <button class="btn btn-outline" id="btn-close-backtest" style="margin-right: -100px;">
-                <i class="fa-solid fa-arrow-left"></i> Back to Sessions
-            </button>
-            <button class="btn btn-primary" id="btn-add-backtest-trade">
-                <i class="fa-solid fa-plus"></i> Log Trade
-            </button>
         </div>
         
         <div class="card table-container">

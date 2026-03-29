@@ -115,7 +115,7 @@ function initDOM() {
         btNetPnl: document.getElementById('bt-net-pnl'),
         btWinRate: document.getElementById('bt-win-rate'),
         btTotalTrades: document.getElementById('bt-total-trades'),
-        btSessionTitle: document.getElementById('bt-session-title')
+        btSectionHeading: document.getElementById('bt-section-heading')
     };
 }
 
@@ -382,6 +382,11 @@ function setupEventListeners() {
             window.selectedBacktestId = null;
             elements.activeViewBacktest.style.display = 'none';
             elements.listViewBacktest.style.display = 'block';
+            // Toggle buttons
+            elements.btnNewBacktest.style.display = '';
+            elements.btnCloseBacktest.style.display = 'none';
+            elements.btnOpenBacktestTrade.style.display = 'none';
+            elements.btSectionHeading.textContent = 'Backtesting Sessions';
         });
     }
 
@@ -1002,6 +1007,13 @@ window.openBacktestSession = function(id) {
     window.selectedBacktestId = id;
     elements.listViewBacktest.style.display = 'none';
     elements.activeViewBacktest.style.display = 'block';
+    // Toggle buttons
+    elements.btnNewBacktest.style.display = 'none';
+    elements.btnCloseBacktest.style.display = '';
+    elements.btnOpenBacktestTrade.style.display = '';
+    // Update heading to session name
+    const session = state.backtests.find(s => s.id === id);
+    if (session) elements.btSectionHeading.textContent = session.name;
     renderActiveBacktest();
 }
 
@@ -1011,7 +1023,7 @@ function renderActiveBacktest() {
     const session = state.backtests.find(s => s.id === window.selectedBacktestId);
     if (!session) return;
 
-    elements.btSessionTitle.textContent = session.name;
+    elements.btSectionHeading.textContent = session.name;
 
     const trades = state.backtestTrades.filter(t => t.session_id === session.id);
     const initial = Number(session.initial_balance);

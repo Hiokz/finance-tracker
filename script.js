@@ -415,7 +415,6 @@ window.deleteTrade = async function (id) {
 function renderAll() {
     renderDashboard();
     renderTransactionsTable();
-    renderTradesTable();
     renderPnlCalendar();
 }
 

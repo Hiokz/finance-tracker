@@ -274,7 +274,6 @@ async function handleTransactionSubmit(e) {
     const type = document.getElementById('tx-type').value;
     const amount = parseFloat(document.getElementById('tx-amount').value);
     const description = document.getElementById('tx-desc').value;
-    const category = document.getElementById('tx-category').value || 'Uncategorized';
     const date = document.getElementById('tx-date').value;
 
     const btn = elements.transactionForm.querySelector('button[type="submit"]');
@@ -282,7 +281,7 @@ async function handleTransactionSubmit(e) {
 
     const { data, error } = await supabaseClient
         .from('transactions')
-        .insert([{ user_id: currentUser.id, type, amount, description, category, date }])
+        .insert([{ user_id: currentUser.id, type, amount, description, date }])
         .select();
 
     if (!error && data) {
@@ -399,7 +398,6 @@ function renderTransactionsTable() {
         tr.innerHTML = `
             <td>${formatDate(t.date)}</td>
             <td><strong>${t.description}</strong></td>
-            <td>${t.category}</td>
             <td><span class="badge ${t.type}">${t.type}</span></td>
             <td class="${t.type === 'income' ? 'success-text' : 'danger-text'}">
                 ${t.type === 'income' ? '+' : '-'}${formatCurrency(t.amount)}

@@ -74,7 +74,6 @@ function initDOM() {
         tradeForm: document.getElementById('trade-form'),
 
         transactionsList: document.getElementById('transactions-list'),
-        tradesList: document.getElementById('trades-list'),
         noTransactions: document.getElementById('no-transactions'),
 
         calMonthDisplay: document.getElementById('cal-month-display'),
@@ -472,41 +471,6 @@ function renderTransactionsTable() {
             </td>
         `;
         elements.transactionsList.appendChild(tr);
-    });
-}
-
-function renderTradesTable() {
-    if (!elements.tradesList) return;
-    elements.tradesList.innerHTML = '';
-
-    document.getElementById('trades-table').style.display = 'table';
-
-    if (state.trades.length === 0) {
-        elements.tradesList.innerHTML = `<tr><td colspan="7" style="text-align:center; padding: 2rem; color: var(--text-muted);">No trades logged yet.</td></tr>`;
-        return;
-    }
-
-    state.trades.forEach(t => {
-        const badgeClass = t.direction;
-        const pnl = Number(t.pnl);
-        const pnlClass = pnl >= 0 ? 'success-text' : 'danger-text';
-        const pnlPrefix = pnl >= 0 ? '+' : '';
-
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-            <td>${formatDate(t.date)}</td>
-            <td><strong>${t.asset}</strong></td>
-            <td><span class="badge ${badgeClass}">${t.direction}</span></td>
-            <td>${Number(t.entry_price).toFixed(5)}</td>
-            <td>${Number(t.exit_price).toFixed(5)}</td>
-            <td class="${pnlClass}">${pnlPrefix}${formatCurrency(pnl)}</td>
-            <td>
-                <button class="action-btn delete" onclick="deleteTrade('${t.id}')">
-                    <i class="fa-solid fa-trash"></i>
-                </button>
-            </td>
-        `;
-        elements.tradesList.appendChild(tr);
     });
 }
 

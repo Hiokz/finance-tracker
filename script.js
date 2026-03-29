@@ -27,7 +27,7 @@ async function loadComponents() {
 
     for (const comp of componentsToLoad) {
         try {
-            const response = await fetch(comp.url);
+            const response = await fetch(`${comp.url}?v=${Date.now()}`);
             if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
             const html = await response.text();
             document.getElementById(comp.id).outerHTML = html;

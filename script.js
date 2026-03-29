@@ -1,11 +1,33 @@
+// Supabase Initialization
+const SUPABASE_URL = 'https://cvzqsgpczhjlgjmundga.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN2enFzZ3BjemhqbGdqbXVuZGdhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3ODQ4MjAsImV4cCI6MjA5MDM2MDgyMH0.HPqLoJmwdvuqaz4tBJWZsp6qqbFL_oK3m4_QkGwGfgE';
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
 // State Management
 let state = {
-    transactions: JSON.parse(localStorage.getItem('fintrack_transactions')) || [],
-    trades: JSON.parse(localStorage.getItem('fintrack_trades')) || []
+    transactions: [],
+    trades: []
 };
+let currentUser = null;
+let isSignUpMode = false;
 
 // DOM Elements
 const elements = {
+    // Login
+    loginOverlay: document.getElementById('login-overlay'),
+    loginForm: document.getElementById('login-form'),
+    loginEmail: document.getElementById('login-email'),
+    loginPassword: document.getElementById('login-password'),
+    loginError: document.getElementById('login-error'),
+    authTitle: document.getElementById('auth-title'),
+    authSubtitle: document.getElementById('auth-subtitle'),
+    authSubmitBtn: document.getElementById('auth-submit-btn'),
+    authToggleText: document.getElementById('auth-toggle-text'),
+    authToggleBtn: document.getElementById('auth-toggle-btn'),
+    btnLogout: document.getElementById('btn-logout'),
+    userDisplayEmail: document.getElementById('user-display-email'),
+    appWrapper: document.getElementById('app-wrapper'),
+
     // Navigation
     navItems: document.querySelectorAll('.nav-item'),
     sections: document.querySelectorAll('.content-section'),
@@ -44,28 +66,130 @@ const elements = {
 let cashflowChartInstance = null;
 
 // Initialize Application
-function init() {
+async function init() {
     setupEventListeners();
     updateDateDisplay();
-    renderAll();
+    
+    // Check active Supabase session
+    const { data: { session } } = await supabaseClient.auth.getSession();
+    handleAuthState(session);
+
+    // Listen for auth changes
+    supabaseClient.auth.onAuthStateChange((event, session) => {
+        handleAuthState(session);
+    });
+}
+
+// Auth Handling
+async function handleAuthState(session) {
+    if (session) {
+        currentUser = session.user;
+        elements.userDisplayEmail.textContent = currentUser.email.split('@')[0];
+        unlockApp();
+        await loadData();
+    } else {
+        currentUser = null;
+        lockApp();
+    }
+}
+
+function unlockApp() {
+    elements.loginOverlay.classList.remove('active');
+    setTimeout(() => {
+        elements.loginOverlay.style.display = 'none';
+        elements.appWrapper.style.display = 'flex';
+    }, 300);
+}
+
+function lockApp() {
+    elements.appWrapper.style.display = 'none';
+    elements.loginOverlay.style.display = 'flex';
+    // Small delay to allow display:flex to apply before opacity transition
+    setTimeout(() => {
+        elements.loginOverlay.classList.add('active');
+    }, 10);
 }
 
 // Event Listeners
 function setupEventListeners() {
+    // Auth Mode Toggle
+    if (elements.authToggleBtn) {
+        elements.authToggleBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            isSignUpMode = !isSignUpMode;
+            elements.loginError.style.display = 'none';
+            if (isSignUpMode) {
+                elements.authTitle.textContent = 'Create Account';
+                elements.authSubtitle.textContent = 'Sign up to start tracking your finances.';
+                elements.authSubmitBtn.textContent = 'Sign Up';
+                elements.authToggleText.textContent = 'Already have an account?';
+                elements.authToggleBtn.textContent = 'Sign In';
+            } else {
+                elements.authTitle.textContent = 'FinTrack Secure Access';
+                elements.authSubtitle.textContent = 'Sign in to sync your financial data.';
+                elements.authSubmitBtn.textContent = 'Sign In';
+                elements.authToggleText.textContent = "Don't have an account?";
+                elements.authToggleBtn.textContent = 'Sign Up';
+            }
+        });
+    }
+
+    // Login / Signup Submit
+    if (elements.loginForm) {
+        elements.loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            elements.authSubmitBtn.disabled = true;
+            elements.authSubmitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Processing...';
+            elements.loginError.style.display = 'none';
+            
+            const email = elements.loginEmail.value;
+            const password = elements.loginPassword.value;
+            let error;
+
+            if (isSignUpMode) {
+                const { error: signUpError } = await supabaseClient.auth.signUp({ email, password });
+                error = signUpError;
+                if(!error) {
+                    elements.loginError.textContent = 'Success! Please sign in.';
+                    elements.loginError.className = 'success-text';
+                    elements.loginError.style.display = 'block';
+                    elements.authToggleBtn.click(); // Switch back to login
+                }
+            } else {
+                const { error: signInError } = await supabaseClient.auth.signInWithPassword({ email, password });
+                error = signInError;
+            }
+
+            if (error) {
+                elements.loginError.textContent = error.message;
+                elements.loginError.className = 'danger-text';
+                elements.loginError.style.display = 'block';
+            }
+
+            elements.authSubmitBtn.disabled = false;
+            elements.authSubmitBtn.textContent = isSignUpMode ? 'Sign Up' : 'Sign In';
+        });
+    }
+
+    // Logout
+    if (elements.btnLogout) {
+        elements.btnLogout.addEventListener('click', async () => {
+            await supabaseClient.auth.signOut();
+        });
+    }
+
     // Navigation
     elements.navItems.forEach(item => {
         item.addEventListener('click', (e) => {
             e.preventDefault();
             const targetId = item.getAttribute('data-target');
             
-            // Update active nav
             elements.navItems.forEach(nav => nav.classList.remove('active'));
             item.classList.add('active');
             
-            // Update title
             elements.pageTitle.textContent = item.querySelector('span').textContent;
             
-            // Show target section
             elements.sections.forEach(section => {
                 section.classList.remove('active');
                 if(section.id === targetId) {
@@ -81,7 +205,6 @@ function setupEventListeners() {
     elements.closeTransactionModal.addEventListener('click', () => closeModal(elements.transactionModal));
     elements.closeTradeModal.addEventListener('click', () => closeModal(elements.tradeModal));
     
-    // Close modal on outside click
     window.addEventListener('click', (e) => {
         if(e.target.classList.contains('modal-overlay')) {
             closeModal(e.target);
@@ -98,94 +221,120 @@ function updateDateDisplay() {
     elements.currentDate.textContent = new Date().toLocaleDateString('en-US', options);
 }
 
-// Modals Handling
 function openModal(modal) {
     modal.classList.add('active');
 }
 
 function closeModal(modal) {
     modal.classList.remove('active');
-    // Reset form inside modal
     const form = modal.querySelector('form');
     if(form) form.reset();
 }
 
-// Data Handling - Transactions
-function handleTransactionSubmit(e) {
+// Database Operations
+async function loadData() {
+    // Fetch Transactions
+    const { data: txData, error: txError } = await supabaseClient
+        .from('transactions')
+        .select('*')
+        .order('date', { ascending: false });
+        
+    if (!txError && txData) {
+        state.transactions = txData;
+    }
+
+    // Fetch Trades
+    const { data: trData, error: trError } = await supabaseClient
+        .from('trades')
+        .select('*')
+        .order('date', { ascending: false });
+        
+    if (!trError && trData) {
+        state.trades = trData;
+    }
+
+    renderAll();
+}
+
+async function handleTransactionSubmit(e) {
     e.preventDefault();
+    if (!currentUser) return;
     
     const type = document.getElementById('tx-type').value;
     const amount = parseFloat(document.getElementById('tx-amount').value);
-    const desc = document.getElementById('tx-desc').value;
-    const category = document.getElementById('tx-category').value;
+    const description = document.getElementById('tx-desc').value;
+    const category = document.getElementById('tx-category').value || 'Uncategorized';
     const date = document.getElementById('tx-date').value;
 
-    const transaction = {
-        id: generateId(),
-        type,
-        amount,
-        desc,
-        category: category || 'Uncategorized',
-        date
-    };
+    const btn = elements.transactionForm.querySelector('button[type="submit"]');
+    btn.disabled = true;
 
-    state.transactions.push(transaction);
-    state.transactions.sort((a, b) => new Date(b.date) - new Date(a.date)); // Sort latest first
+    const { data, error } = await supabaseClient
+        .from('transactions')
+        .insert([{ user_id: currentUser.id, type, amount, description, category, date }])
+        .select();
+
+    if (!error && data) {
+        state.transactions.unshift(data[0]); // Add to top
+        state.transactions.sort((a, b) => new Date(b.date) - new Date(a.date));
+        closeModal(elements.transactionModal);
+        renderAll();
+    } else {
+        console.error("Error inserting transaction:", error);
+        alert("Failed to save transaction.");
+    }
     
-    saveData();
-    closeModal(elements.transactionModal);
-    renderAll();
+    btn.disabled = false;
 }
 
-function deleteTransaction(id) {
-    state.transactions = state.transactions.filter(t => t.id !== id);
-    saveData();
-    renderAll();
+window.deleteTransaction = async function(id) {
+    const { error } = await supabaseClient.from('transactions').delete().eq('id', id);
+    if (!error) {
+        state.transactions = state.transactions.filter(t => t.id !== id);
+        renderAll();
+    }
 }
 
-// Data Handling - Trades
-function handleTradeSubmit(e) {
+async function handleTradeSubmit(e) {
     e.preventDefault();
+    if (!currentUser) return;
     
     const asset = document.getElementById('td-asset').value;
     const direction = document.getElementById('td-direction').value;
     const date = document.getElementById('td-date').value;
-    const entry = parseFloat(document.getElementById('td-entry').value);
-    const exit = parseFloat(document.getElementById('td-exit').value);
+    const entry_price = parseFloat(document.getElementById('td-entry').value);
+    const exit_price = parseFloat(document.getElementById('td-exit').value);
     const notes = document.getElementById('td-notes').value;
 
-    // Calculate PnL (simplified: Assuming 1 unit of asset for absolute PnL)
-    // Normally would include position sizing
-    let pnl = 0;
-    if (direction === 'long') {
-        pnl = exit - entry;
+    let pnl = direction === 'long' ? (exit_price - entry_price) : (entry_price - exit_price);
+
+    const btn = elements.tradeForm.querySelector('button[type="submit"]');
+    btn.disabled = true;
+
+    const { data, error } = await supabaseClient
+        .from('trades')
+        .insert([{ user_id: currentUser.id, asset, direction, date, entry_price, exit_price, pnl, notes }])
+        .select();
+
+    if (!error && data) {
+        state.trades.unshift(data[0]);
+        state.trades.sort((a, b) => new Date(b.date) - new Date(a.date));
+        closeModal(elements.tradeModal);
+        renderAll();
     } else {
-        pnl = entry - exit;
+        console.error("Error inserting trade:", error);
+        alert("Failed to log trade.");
     }
 
-    const trade = {
-        id: generateId(),
-        asset,
-        direction,
-        date,
-        entry,
-        exit,
-        pnl,
-        notes
-    };
-
-    state.trades.push(trade);
-    state.trades.sort((a, b) => new Date(b.date) - new Date(a.date)); // Sort latest first
-    
-    saveData();
-    closeModal(elements.tradeModal);
-    renderAll();
+    btn.disabled = false;
 }
 
-function deleteTrade(id) {
-    state.trades = state.trades.filter(t => t.id !== id);
-    saveData();
-    renderAll();
+window.deleteTrade = async function(id) {
+    const { error } = await supabaseClient.from('trades').delete().eq('id', id);
+    if (!error) {
+        state.trades = state.trades.filter(t => t.id !== id);
+        renderAll();
+    }
 }
 
 // Core Rendering
@@ -196,27 +345,23 @@ function renderAll() {
     updateChart();
 }
 
-// Calculations & Dashboard Render
 function renderDashboard() {
-    // Financials
     const income = state.transactions
         .filter(t => t.type === 'income')
-        .reduce((acc, curr) => acc + curr.amount, 0);
+        .reduce((acc, curr) => acc + Number(curr.amount), 0);
         
     const expense = state.transactions
         .filter(t => t.type === 'expense')
-        .reduce((acc, curr) => acc + curr.amount, 0);
+        .reduce((acc, curr) => acc + Number(curr.amount), 0);
 
     const balance = income - expense;
 
-    // Trading stats
-    const totalPnl = state.trades.reduce((acc, curr) => acc + curr.pnl, 0);
-    const winningTrades = state.trades.filter(t => t.pnl > 0).length;
+    const totalPnl = state.trades.reduce((acc, curr) => acc + Number(curr.pnl), 0);
+    const winningTrades = state.trades.filter(t => Number(t.pnl) > 0).length;
     const winRate = state.trades.length > 0 
         ? ((winningTrades / state.trades.length) * 100).toFixed(1) 
         : 0;
 
-    // Update DOM
     elements.dashTotalBalance.textContent = formatCurrency(balance);
     elements.dashTotalIncome.textContent = `+${formatCurrency(income)}`;
     elements.dashTotalExpense.textContent = `-${formatCurrency(expense)}`;
@@ -226,7 +371,6 @@ function renderDashboard() {
     elements.dashWinRate.textContent = `${winRate}%`;
 }
 
-// Render Transactions List
 function renderTransactionsTable() {
     elements.transactionsList.innerHTML = '';
     
@@ -243,7 +387,7 @@ function renderTransactionsTable() {
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td>${formatDate(t.date)}</td>
-            <td><strong>${t.desc}</strong></td>
+            <td><strong>${t.description}</strong></td>
             <td>${t.category}</td>
             <td><span class="badge ${t.type}">${t.type}</span></td>
             <td class="${t.type === 'income' ? 'success-text' : 'danger-text'}">
@@ -259,7 +403,6 @@ function renderTransactionsTable() {
     });
 }
 
-// Render Trades List
 function renderTradesTable() {
     elements.tradesList.innerHTML = '';
     
@@ -274,17 +417,18 @@ function renderTradesTable() {
 
     state.trades.forEach(t => {
         const badgeClass = t.direction;
-        const pnlClass = t.pnl >= 0 ? 'success-text' : 'danger-text';
-        const pnlPrefix = t.pnl >= 0 ? '+' : '';
+        const pnl = Number(t.pnl);
+        const pnlClass = pnl >= 0 ? 'success-text' : 'danger-text';
+        const pnlPrefix = pnl >= 0 ? '+' : '';
         
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td>${formatDate(t.date)}</td>
             <td><strong>${t.asset}</strong></td>
             <td><span class="badge ${badgeClass}">${t.direction}</span></td>
-            <td>${t.entry.toFixed(5)}</td>
-            <td>${t.exit.toFixed(5)}</td>
-            <td class="${pnlClass}">${pnlPrefix}${formatCurrency(t.pnl)}</td>
+            <td>${Number(t.entry_price).toFixed(5)}</td>
+            <td>${Number(t.exit_price).toFixed(5)}</td>
+            <td class="${pnlClass}">${pnlPrefix}${formatCurrency(pnl)}</td>
             <td>
                 <button class="action-btn delete" onclick="deleteTrade('${t.id}')">
                     <i class="fa-solid fa-trash"></i>
@@ -295,7 +439,6 @@ function renderTradesTable() {
     });
 }
 
-// Charting
 function updateChart() {
     const ctx = elements.canvas.getContext('2d');
     
@@ -303,23 +446,18 @@ function updateChart() {
         cashflowChartInstance.destroy();
     }
     
-    // Group transactions by Date (last 7 active days)
-    // For simplicity, we aggregate by date
     const dateMap = {};
-    
-    // Reverse to process chronologically if we want line chart left-to-right, 
-    // but state is sorted newest first, so we reverse a copy
     const sortedTx = [...state.transactions].reverse();
     
     sortedTx.forEach(t => {
         if(!dateMap[t.date]) {
             dateMap[t.date] = { income: 0, expense: 0 };
         }
-        if(t.type === 'income') dateMap[t.date].income += t.amount;
-        if(t.type === 'expense') dateMap[t.date].expense += t.amount;
+        if(t.type === 'income') dateMap[t.date].income += Number(t.amount);
+        if(t.type === 'expense') dateMap[t.date].expense += Number(t.amount);
     });
 
-    const labels = Object.keys(dateMap).slice(-7); // Last 7 days with activity
+    const labels = Object.keys(dateMap).slice(-7);
     const incomeData = labels.map(date => dateMap[date].income);
     const expenseData = labels.map(date => dateMap[date].expense);
 
@@ -365,15 +503,6 @@ function updateChart() {
 }
 
 // Helpers
-function generateId() {
-    return Math.random().toString(36).substr(2, 9);
-}
-
-function saveData() {
-    localStorage.setItem('fintrack_transactions', JSON.stringify(state.transactions));
-    localStorage.setItem('fintrack_trades', JSON.stringify(state.trades));
-}
-
 function formatCurrency(amount) {
     return new Intl.NumberFormat('en-US', {
         style: 'currency',

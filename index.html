@@ -12,11 +12,38 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
+    <!-- Supabase JS -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <!-- Custom CSS -->
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="app-container">
+    <!-- Login Screen -->
+    <div id="login-overlay" class="login-overlay glass-panel active">
+        <div class="login-container">
+            <div class="logo">
+                <i class="fa-solid fa-lock logo-icon"></i>
+                <h2 id="auth-title">FinTrack Secure Access</h2>
+            </div>
+            <p class="login-subtext" id="auth-subtitle">Sign in to sync your financial data.</p>
+            <form id="login-form">
+                <div class="form-group">
+                    <input type="email" id="login-email" placeholder="Email Address" required>
+                </div>
+                <div class="form-group">
+                    <input type="password" id="login-password" placeholder="Password" required>
+                </div>
+                <div id="login-error" class="danger-text" style="display: none; font-size: 0.85rem; margin-top: -10px; margin-bottom: 15px;"></div>
+                <button type="submit" id="auth-submit-btn" class="btn btn-primary btn-block">Sign In</button>
+            </form>
+            <div style="margin-top: 20px;">
+                <span class="sub-text" id="auth-toggle-text">Don't have an account?</span>
+                <button id="auth-toggle-btn" class="action-btn" style="color: var(--primary); text-decoration: underline;">Sign Up</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="app-container" id="app-wrapper" style="display: none;">
         <!-- Sidebar Navigation -->
         <aside class="sidebar glass-panel">
             <div class="logo">
@@ -43,9 +70,12 @@
                 <div class="user-profile">
                     <img src="https://ui-avatars.com/api/?name=User&background=303642&color=00F0FF" alt="User Avatar" class="avatar">
                     <div class="user-info">
-                        <p class="user-name">Welcome Back</p>
+                        <p class="user-name" id="user-display-email">User</p>
                     </div>
                 </div>
+                <button id="btn-logout" class="btn btn-block" style="margin-top: 16px; background: rgba(255, 51, 102, 0.1); color: var(--danger); border: 1px solid rgba(255, 51, 102, 0.2);">
+                    <i class="fa-solid fa-right-from-bracket"></i> Sign Out
+                </button>
             </div>
         </aside>
 

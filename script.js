@@ -52,6 +52,8 @@ function initDOM() {
         userDisplayEmail: document.getElementById('user-display-email'),
         appWrapper: document.getElementById('app-wrapper'),
 
+        totalBalanceCard: document.getElementById('total-balance-card'),
+
         navItems: document.querySelectorAll('.nav-item'),
         sections: document.querySelectorAll('.content-section'),
         pageTitle: document.getElementById('page-title'),
@@ -89,6 +91,9 @@ function initDOM() {
         btnAddTradeDay: document.getElementById('btn-add-trade-day')
     };
 }
+
+// Global UI State
+let isBalanceHidden = false;
 
 // Initialize Application
 async function init() {
@@ -245,6 +250,13 @@ function setupEventListeners() {
             // Close day trades modal temporarily if open? Or overlay.
             // Overlaying modals works natively via Z-index, which is handled in CSS/HTML setup.
             openModal(elements.tradeModal);
+        });
+    }
+
+    if (elements.totalBalanceCard) {
+        elements.totalBalanceCard.addEventListener('click', () => {
+            isBalanceHidden = !isBalanceHidden;
+            renderDashboard();
         });
     }
 
@@ -505,7 +517,7 @@ function renderDashboard() {
         ? ((winningTrades / state.trades.length) * 100).toFixed(1)
         : 0;
 
-    elements.dashTotalBalance.textContent = formatCurrency(balance);
+    elements.dashTotalBalance.textContent = isBalanceHidden ? '****' : formatCurrency(balance);
     elements.dashTotalIncome.textContent = `+${formatCurrency(income)}`;
     elements.dashTotalExpense.textContent = `-${formatCurrency(expense)}`;
 

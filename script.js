@@ -84,6 +84,7 @@ function initDOM() {
         closeDayTradesModal: document.getElementById('close-day-trades-modal'),
         dayTradesTitle: document.getElementById('day-trades-title'),
         dayTradesPnl: document.getElementById('day-trades-pnl'),
+        dayTradesCount: document.getElementById('day-trades-count'),
         dayTradesList: document.getElementById('day-trades-list'),
         btnAddTradeDay: document.getElementById('btn-add-trade-day')
     };

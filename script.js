@@ -148,7 +148,7 @@ async function handleAuthState(session) {
         const displayName = rawName.charAt(0).toUpperCase() + rawName.slice(1);
         elements.userDisplayEmail.textContent = displayName;
         const avatarImg = document.querySelector('.user-profile .avatar');
-        if (avatarImg) avatarImg.src = `https://ui-avatars.com/api/?name=${displayName}&background=303642&color=00F0FF`;
+        if (avatarImg) avatarImg.src = `https://ui-avatars.com/api/?name=${displayName}&background=303642&color=00F0FF&length=2`;
         unlockApp();
         await loadData();
     } else {

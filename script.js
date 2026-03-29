@@ -66,7 +66,6 @@ function initDOM() {
         transactionModal: document.getElementById('transaction-modal'),
         tradeModal: document.getElementById('trade-modal'),
         btnAddTransaction: document.getElementById('btn-add-transaction'),
-        btnAddTrade: document.getElementById('btn-add-trade'),
         closeTransactionModal: document.getElementById('close-transaction-modal'),
         closeTradeModal: document.getElementById('close-trade-modal'),
 
@@ -229,10 +228,6 @@ function setupEventListeners() {
     elements.btnAddTransaction.addEventListener('click', () => {
         window.selectedTradeDate = null;
         openModal(elements.transactionModal);
-    });
-    elements.btnAddTrade.addEventListener('click', () => {
-        window.selectedTradeDate = null;
-        openModal(elements.tradeModal);
     });
     elements.closeTransactionModal.addEventListener('click', () => closeModal(elements.transactionModal));
     elements.closeTradeModal.addEventListener('click', () => closeModal(elements.tradeModal));

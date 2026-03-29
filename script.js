@@ -80,7 +80,11 @@ function initDOM() {
         calMonthDisplay: document.getElementById('cal-month-display'),
         calGrid: document.getElementById('pnl-calendar-grid'),
         calPrevBtn: document.getElementById('cal-prev-month'),
-        calNextBtn: document.getElementById('cal-next-month')
+        calNextBtn: document.getElementById('cal-next-month'),
+
+        tradesFilterBar: document.getElementById('trades-filter-bar'),
+        tradesFilterText: document.getElementById('trades-filter-text'),
+        btnClearTradeFilter: document.getElementById('btn-clear-trade-filter')
     };
 }
 
@@ -196,6 +200,14 @@ function setupEventListeners() {
             currentCalDate.setMonth(currentCalDate.getMonth() + 1);
             renderPnlCalendar();
         });
+
+        if (elements.btnClearTradeFilter) {
+            elements.btnClearTradeFilter.addEventListener('click', () => {
+                window.selectedTradeDate = null;
+                renderPnlCalendar();
+                renderTradesTable();
+            });
+        }
     }
 
     // Toggle Buttons (Income/Expense, Long/Short)
@@ -238,11 +250,15 @@ function openModal(modal) {
     // Pre-fill date inputs with today's date
     const dateInput = modal.querySelector('input[type="date"]');
     if (dateInput) {
-        const today = new Date();
-        const year = today.getFullYear();
-        const month = String(today.getMonth() + 1).padStart(2, '0');
-        const day = String(today.getDate()).padStart(2, '0');
-        dateInput.value = `${year}-${month}-${day}`;
+        if (modal.id === 'trade-modal' && window.selectedTradeDate) {
+            dateInput.value = window.selectedTradeDate;
+        } else {
+            const today = new Date();
+            const year = today.getFullYear();
+            const month = String(today.getMonth() + 1).padStart(2, '0');
+            const day = String(today.getDate()).padStart(2, '0');
+            dateInput.value = `${year}-${month}-${day}`;
+        }
     }
 }
 
@@ -439,16 +455,30 @@ function renderTransactionsTable() {
 }
 
 function renderTradesTable() {
+    if (!elements.tradesList) return;
     elements.tradesList.innerHTML = '';
 
-    if (state.trades.length === 0) {
-        document.getElementById('trades-table').style.display = 'table';
-        return;
+    let filteredTrades = state.trades;
+    if (window.selectedTradeDate) {
+        filteredTrades = state.trades.filter(t => t.date === window.selectedTradeDate);
+        if (elements.tradesFilterBar) {
+            elements.tradesFilterBar.style.display = 'flex';
+            const d = new Date(window.selectedTradeDate);
+            elements.tradesFilterText.textContent = `Trades for ${d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}`;
+        }
+    } else {
+        if (elements.tradesFilterBar) elements.tradesFilterBar.style.display = 'none';
     }
 
     document.getElementById('trades-table').style.display = 'table';
 
-    state.trades.forEach(t => {
+    if (filteredTrades.length === 0) {
+        let msg = window.selectedTradeDate ? 'No trades on this date.' : 'No trades logged yet.';
+        elements.tradesList.innerHTML = `<tr><td colspan="7" style="text-align:center; padding: 2rem; color: var(--text-muted);">${msg}</td></tr>`;
+        return;
+    }
+
+    filteredTrades.forEach(t => {
         const badgeClass = t.direction;
         const pnl = Number(t.pnl);
         const pnlClass = pnl >= 0 ? 'success-text' : 'danger-text';
@@ -538,8 +568,12 @@ function renderPnlCalendar() {
             }
         }
 
+        if (window.selectedTradeDate === cell.dateStr) {
+            cellClass += ' selected';
+        }
+
         html += `
-            <div class="${cellClass}">
+            <div class="${cellClass}" data-date="${cell.dateStr}">
                 <div class="cal-date">${cell.day}</div>
                 ${pnlHtml}
             </div>
@@ -553,11 +587,25 @@ function renderPnlCalendar() {
         const padEnd = 5 - lastDow;
         let nextDay = 1;
         for (let i = 0; i < padEnd; i++) {
-            html += `<div class="cal-cell empty"><div class="cal-date">${nextDay++}</div></div>`;
+            html += `<div class="cal-cell empty" style="cursor: default;"><div class="cal-date">${nextDay++}</div></div>`;
         }
     }
 
     elements.calGrid.innerHTML = html;
+
+    // Attach click listeners to valid days
+    elements.calGrid.querySelectorAll('.cal-cell:not(.empty)').forEach(cellNode => {
+        cellNode.addEventListener('click', () => {
+            const clickedDate = cellNode.dataset.date;
+            if (window.selectedTradeDate === clickedDate) {
+                window.selectedTradeDate = null; // Toggle off
+            } else {
+                window.selectedTradeDate = clickedDate; // Toggle on
+            }
+            renderPnlCalendar();
+            renderTradesTable();
+        });
+    });
 }
 
 // Helpers

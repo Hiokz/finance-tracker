@@ -597,8 +597,16 @@ function renderPnlCalendar() {
     weekdayCells.forEach(cell => {
         let cellClass = 'cal-cell';
         let pnlHtml = '';
+        let countHtml = '';
 
         if (dailyPnl[cell.dateStr] !== undefined) {
+            const dayTrades = state.trades.filter(t => t.date === cell.dateStr);
+            const count = dayTrades.length;
+            if (count > 0) {
+                const countText = count === 1 ? '1 Trade' : `${count} Trades`;
+                countHtml = `<div class="cal-trades-count" style="font-size: 0.70rem; color: rgba(255,255,255,0.4); margin-top: 2px;">${countText}</div>`;
+            }
+
             const pnl = dailyPnl[cell.dateStr];
             if (pnl > 0) {
                 cellClass += ' profit';
@@ -619,6 +627,7 @@ function renderPnlCalendar() {
             <div class="${cellClass}" data-date="${cell.dateStr}">
                 <div class="cal-date">${cell.day}</div>
                 ${pnlHtml}
+                ${countHtml}
             </div>
         `;
     });

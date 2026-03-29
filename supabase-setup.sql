@@ -7,7 +7,6 @@ CREATE TABLE transactions (
     type TEXT NOT NULL CHECK (type IN ('income', 'expense')),
     amount NUMERIC(12, 2) NOT NULL,
     description TEXT NOT NULL,
-    category TEXT DEFAULT 'Uncategorized',
     date DATE NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW())
 );

@@ -22,6 +22,7 @@ async function loadComponents() {
         { id: 'dashboard-placeholder', url: 'components/dashboard.html' },
         { id: 'transactions-placeholder', url: 'components/transactions.html' },
         { id: 'journal-placeholder', url: 'components/journal.html' },
+        { id: 'day-trades-placeholder', url: 'components/day-trades.html' },
         { id: 'modals-placeholder', url: 'components/modals.html' }
     ];
 
@@ -82,9 +83,12 @@ function initDOM() {
         calPrevBtn: document.getElementById('cal-prev-month'),
         calNextBtn: document.getElementById('cal-next-month'),
 
-        tradesFilterBar: document.getElementById('trades-filter-bar'),
-        tradesFilterText: document.getElementById('trades-filter-text'),
-        btnClearTradeFilter: document.getElementById('btn-clear-trade-filter')
+        dayTradesSection: document.getElementById('day-trades-section'),
+        btnBackToJournal: document.getElementById('btn-back-to-journal'),
+        dayTradesTitle: document.getElementById('day-trades-title'),
+        dayTradesPnl: document.getElementById('day-trades-pnl'),
+        dayTradesList: document.getElementById('day-trades-list'),
+        btnAddTradeDay: document.getElementById('btn-add-trade-day')
     };
 }
 
@@ -200,14 +204,20 @@ function setupEventListeners() {
             currentCalDate.setMonth(currentCalDate.getMonth() + 1);
             renderPnlCalendar();
         });
+    }
 
-        if (elements.btnClearTradeFilter) {
-            elements.btnClearTradeFilter.addEventListener('click', () => {
-                window.selectedTradeDate = null;
-                renderPnlCalendar();
-                renderTradesTable();
-            });
-        }
+    if (elements.btnBackToJournal) {
+        elements.btnBackToJournal.addEventListener('click', () => {
+            window.selectedTradeDate = null;
+            elements.sections.forEach(s => s.classList.remove('active'));
+            document.getElementById('journal-section').classList.add('active');
+            elements.pageTitle.textContent = "Trading Journal";
+            renderPnlCalendar();
+        });
+    }
+
+    if (elements.btnAddTradeDay) {
+        elements.btnAddTradeDay.addEventListener('click', () => openModal(elements.tradeModal));
     }
 
     // Toggle Buttons (Income/Expense, Long/Short)
@@ -373,6 +383,9 @@ async function handleTradeSubmit(e) {
         state.trades.sort((a, b) => new Date(b.date) - new Date(a.date));
         closeModal(elements.tradeModal);
         renderAll();
+        if (window.selectedTradeDate && elements.dayTradesSection && elements.dayTradesSection.classList.contains('active')) {
+            renderDayTrades();
+        }
     } else {
         console.error("Error inserting trade:", error);
         alert("Failed to log trade.");
@@ -386,6 +399,10 @@ window.deleteTrade = async function (id) {
     if (!error) {
         state.trades = state.trades.filter(t => t.id !== id);
         renderAll();
+        // Dynamic re-render if we are in Day Trades view deleting
+        if (window.selectedTradeDate && elements.dayTradesSection && elements.dayTradesSection.classList.contains('active')) {
+            renderDayTrades();
+        }
     }
 }
 
@@ -458,27 +475,14 @@ function renderTradesTable() {
     if (!elements.tradesList) return;
     elements.tradesList.innerHTML = '';
 
-    let filteredTrades = state.trades;
-    if (window.selectedTradeDate) {
-        filteredTrades = state.trades.filter(t => t.date === window.selectedTradeDate);
-        if (elements.tradesFilterBar) {
-            elements.tradesFilterBar.style.display = 'flex';
-            const d = new Date(window.selectedTradeDate);
-            elements.tradesFilterText.textContent = `Trades for ${d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}`;
-        }
-    } else {
-        if (elements.tradesFilterBar) elements.tradesFilterBar.style.display = 'none';
-    }
-
     document.getElementById('trades-table').style.display = 'table';
 
-    if (filteredTrades.length === 0) {
-        let msg = window.selectedTradeDate ? 'No trades on this date.' : 'No trades logged yet.';
-        elements.tradesList.innerHTML = `<tr><td colspan="7" style="text-align:center; padding: 2rem; color: var(--text-muted);">${msg}</td></tr>`;
+    if (state.trades.length === 0) {
+        elements.tradesList.innerHTML = `<tr><td colspan="7" style="text-align:center; padding: 2rem; color: var(--text-muted);">No trades logged yet.</td></tr>`;
         return;
     }
 
-    filteredTrades.forEach(t => {
+    state.trades.forEach(t => {
         const badgeClass = t.direction;
         const pnl = Number(t.pnl);
         const pnlClass = pnl >= 0 ? 'success-text' : 'danger-text';
@@ -597,14 +601,61 @@ function renderPnlCalendar() {
     elements.calGrid.querySelectorAll('.cal-cell:not(.empty)').forEach(cellNode => {
         cellNode.addEventListener('click', () => {
             const clickedDate = cellNode.dataset.date;
-            if (window.selectedTradeDate === clickedDate) {
-                window.selectedTradeDate = null; // Toggle off
-            } else {
-                window.selectedTradeDate = clickedDate; // Toggle on
-            }
-            renderPnlCalendar();
-            renderTradesTable();
+            window.selectedTradeDate = clickedDate;
+
+            // Navigate to Day Trades isolated view
+            elements.sections.forEach(s => s.classList.remove('active'));
+            elements.dayTradesSection.classList.add('active');
+
+            const d = new Date(clickedDate);
+            elements.pageTitle.textContent = `Trades: ${d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}`;
+
+            renderDayTrades();
         });
+    });
+}
+
+function renderDayTrades() {
+    if (!elements.dayTradesList) return;
+    elements.dayTradesList.innerHTML = '';
+
+    if (!window.selectedTradeDate) return;
+
+    const d = new Date(window.selectedTradeDate);
+    elements.dayTradesTitle.textContent = `Trades for ${d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}`;
+
+    const filteredTrades = state.trades.filter(t => t.date === window.selectedTradeDate);
+
+    const dayPnl = filteredTrades.reduce((acc, t) => acc + Number(t.pnl), 0);
+    elements.dayTradesPnl.textContent = formatCurrency(dayPnl);
+    elements.dayTradesPnl.className = dayPnl >= 0 ? 'success-text' : 'danger-text';
+
+    if (filteredTrades.length === 0) {
+        elements.dayTradesList.innerHTML = `<tr><td colspan="7" style="text-align:center; padding: 2rem; color: var(--text-muted);">No trades logged on this date.</td></tr>`;
+        return;
+    }
+
+    filteredTrades.forEach(t => {
+        const badgeClass = t.direction;
+        const pnl = Number(t.pnl);
+        const pnlClass = pnl >= 0 ? 'success-text' : 'danger-text';
+        const pnlPrefix = pnl >= 0 ? '+' : '';
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>${formatDate(t.date)}</td>
+            <td><strong>${t.asset}</strong></td>
+            <td><span class="badge ${badgeClass}">${t.direction.toUpperCase()}</span></td>
+            <td>$${Number(t.entry_price).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+            <td>$${Number(t.exit_price).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+            <td class="${pnlClass}">${pnlPrefix}${formatCurrency(pnl)}</td>
+            <td>
+                <button class="action-btn delete" onclick="deleteTrade('${t.id}')">
+                    <i class="fa-solid fa-trash"></i>
+                </button>
+            </td>
+        `;
+        elements.dayTradesList.appendChild(tr);
     });
 }
 

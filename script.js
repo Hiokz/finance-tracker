@@ -15,7 +15,7 @@ const elements = {
     // Login
     loginOverlay: document.getElementById('login-overlay'),
     loginForm: document.getElementById('login-form'),
-    loginEmail: document.getElementById('login-email'),
+    loginUsername: document.getElementById('login-username'),
     loginPassword: document.getElementById('login-password'),
     loginError: document.getElementById('login-error'),
     authTitle: document.getElementById('auth-title'),
@@ -81,6 +81,7 @@ async function init() {
 async function handleAuthState(session) {
     if (session) {
         currentUser = session.user;
+        // Display the username (which is everything before @fintrack.local)
         elements.userDisplayEmail.textContent = currentUser.email.split('@')[0];
         unlockApp();
         await loadData();
@@ -118,7 +119,8 @@ function setupEventListeners() {
             elements.authSubmitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Processing...';
             elements.loginError.style.display = 'none';
             
-            const email = elements.loginEmail.value;
+            const rawUsername = elements.loginUsername.value.trim().toLowerCase();
+            const email = `${rawUsername}@fintrack.local`; // Convert username to a dummy email for Supabase
             const password = elements.loginPassword.value;
 
             const { error: signInError } = await supabaseClient.auth.signInWithPassword({ email, password });

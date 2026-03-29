@@ -62,14 +62,14 @@ function initDOM() {
         dashTotalExpense: document.getElementById('dash-total-expense'),
         dashTradingPnl: document.getElementById('dash-trading-pnl'),
         dashWinRate: document.getElementById('dash-win-rate'),
-        
+
         transactionModal: document.getElementById('transaction-modal'),
         tradeModal: document.getElementById('trade-modal'),
         btnAddTransaction: document.getElementById('btn-add-transaction'),
         btnAddTrade: document.getElementById('btn-add-trade'),
         closeTransactionModal: document.getElementById('close-transaction-modal'),
         closeTradeModal: document.getElementById('close-trade-modal'),
-        
+
         transactionForm: document.getElementById('transaction-form'),
         tradeForm: document.getElementById('trade-form'),
 
@@ -88,11 +88,11 @@ function initDOM() {
 // Initialize Application
 async function init() {
     await loadComponents(); // Must run first to build the page
-    
+
     initDOM(); // Now that HTML is loaded, find elements
     setupEventListeners();
     updateDateDisplay();
-    
+
     // Check active Supabase session
     const { data: { session } } = await supabaseClient.auth.getSession();
     handleAuthState(session);
@@ -138,13 +138,13 @@ function setupEventListeners() {
     if (elements.loginForm) {
         elements.loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            
+
             elements.authSubmitBtn.disabled = true;
             elements.authSubmitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Processing...';
             elements.loginError.style.display = 'none';
-            
+
             const rawUsername = elements.loginUsername.value.trim().toLowerCase();
-            const email = `${rawUsername}@fintrack.local`; 
+            const email = `${rawUsername}@fintrack.local`;
             const password = elements.loginPassword.value;
 
             const { error: signInError } = await supabaseClient.auth.signInWithPassword({ email, password });
@@ -172,15 +172,15 @@ function setupEventListeners() {
         item.addEventListener('click', (e) => {
             e.preventDefault();
             const targetId = item.getAttribute('data-target');
-            
+
             elements.navItems.forEach(nav => nav.classList.remove('active'));
             item.classList.add('active');
-            
+
             elements.pageTitle.textContent = item.querySelector('span').textContent;
-            
+
             elements.sections.forEach(section => {
                 section.classList.remove('active');
-                if(section.id === targetId) {
+                if (section.id === targetId) {
                     section.classList.add('active');
                 }
             });
@@ -217,9 +217,9 @@ function setupEventListeners() {
     elements.btnAddTrade.addEventListener('click', () => openModal(elements.tradeModal));
     elements.closeTransactionModal.addEventListener('click', () => closeModal(elements.transactionModal));
     elements.closeTradeModal.addEventListener('click', () => closeModal(elements.tradeModal));
-    
+
     window.addEventListener('click', (e) => {
-        if(e.target.classList.contains('modal-overlay')) {
+        if (e.target.classList.contains('modal-overlay')) {
             closeModal(e.target);
         }
     });
@@ -236,12 +236,38 @@ function updateDateDisplay() {
 
 function openModal(modal) {
     modal.classList.add('active');
+    // Pre-fill date inputs with today's date
+    const dateInput = modal.querySelector('input[type="date"]');
+    if (dateInput) {
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = String(today.getMonth() + 1).padStart(2, '0');
+        const day = String(today.getDate()).padStart(2, '0');
+        dateInput.value = `${year}-${month}-${day}`;
+    }
 }
 
 function closeModal(modal) {
     modal.classList.remove('active');
     const form = modal.querySelector('form');
-    if(form) form.reset();
+    if (form) {
+        form.reset();
+        // Also physically reset our custom toggle UI to match the hidden input's default value
+        const toggleGroups = form.querySelectorAll('.toggle-group');
+        toggleGroups.forEach(group => {
+            const hiddenInput = group.parentElement.querySelector('input[type="hidden"]');
+            if (hiddenInput) {
+                const defaultVal = hiddenInput.defaultValue;
+                group.querySelectorAll('.toggle-btn').forEach(btn => {
+                    if (btn.dataset.value === defaultVal) {
+                        btn.classList.add('active');
+                    } else {
+                        btn.classList.remove('active');
+                    }
+                });
+            }
+        });
+    }
 }
 
 // Database Operations
@@ -250,7 +276,7 @@ async function loadData() {
         .from('transactions')
         .select('*')
         .order('date', { ascending: false });
-        
+
     if (!txError && txData) {
         state.transactions = txData;
     }
@@ -259,7 +285,7 @@ async function loadData() {
         .from('trades')
         .select('*')
         .order('date', { ascending: false });
-        
+
     if (!trError && trData) {
         state.trades = trData;
     }
@@ -270,7 +296,7 @@ async function loadData() {
 async function handleTransactionSubmit(e) {
     e.preventDefault();
     if (!currentUser) return;
-    
+
     const type = document.getElementById('tx-type').value;
     const amount = parseFloat(document.getElementById('tx-amount').value);
     const description = document.getElementById('tx-desc').value;
@@ -285,7 +311,7 @@ async function handleTransactionSubmit(e) {
         .select();
 
     if (!error && data) {
-        state.transactions.unshift(data[0]); 
+        state.transactions.unshift(data[0]);
         state.transactions.sort((a, b) => new Date(b.date) - new Date(a.date));
         closeModal(elements.transactionModal);
         renderAll();
@@ -293,11 +319,11 @@ async function handleTransactionSubmit(e) {
         console.error("Error inserting transaction:", error);
         alert("Failed to save transaction.");
     }
-    
+
     btn.disabled = false;
 }
 
-window.deleteTransaction = async function(id) {
+window.deleteTransaction = async function (id) {
     const { error } = await supabaseClient.from('transactions').delete().eq('id', id);
     if (!error) {
         state.transactions = state.transactions.filter(t => t.id !== id);
@@ -308,7 +334,7 @@ window.deleteTransaction = async function(id) {
 async function handleTradeSubmit(e) {
     e.preventDefault();
     if (!currentUser) return;
-    
+
     const asset = document.getElementById('td-asset').value;
     const direction = document.getElementById('td-direction').value;
     const date = document.getElementById('td-date').value;
@@ -339,7 +365,7 @@ async function handleTradeSubmit(e) {
     btn.disabled = false;
 }
 
-window.deleteTrade = async function(id) {
+window.deleteTrade = async function (id) {
     const { error } = await supabaseClient.from('trades').delete().eq('id', id);
     if (!error) {
         state.trades = state.trades.filter(t => t.id !== id);
@@ -359,7 +385,7 @@ function renderDashboard() {
     const income = state.transactions
         .filter(t => t.type === 'income')
         .reduce((acc, curr) => acc + Number(curr.amount), 0);
-        
+
     const expense = state.transactions
         .filter(t => t.type === 'expense')
         .reduce((acc, curr) => acc + Number(curr.amount), 0);
@@ -368,14 +394,14 @@ function renderDashboard() {
 
     const totalPnl = state.trades.reduce((acc, curr) => acc + Number(curr.pnl), 0);
     const winningTrades = state.trades.filter(t => Number(t.pnl) > 0).length;
-    const winRate = state.trades.length > 0 
-        ? ((winningTrades / state.trades.length) * 100).toFixed(1) 
+    const winRate = state.trades.length > 0
+        ? ((winningTrades / state.trades.length) * 100).toFixed(1)
         : 0;
 
     elements.dashTotalBalance.textContent = formatCurrency(balance);
     elements.dashTotalIncome.textContent = `+${formatCurrency(income)}`;
     elements.dashTotalExpense.textContent = `-${formatCurrency(expense)}`;
-    
+
     elements.dashTradingPnl.textContent = formatCurrency(totalPnl);
     elements.dashTradingPnl.className = totalPnl >= 0 ? 'success-text' : 'danger-text';
     elements.dashWinRate.textContent = `${winRate}%`;
@@ -383,13 +409,13 @@ function renderDashboard() {
 
 function renderTransactionsTable() {
     elements.transactionsList.innerHTML = '';
-    
+
     if (state.transactions.length === 0) {
         elements.noTransactions.style.display = 'flex';
         document.getElementById('transactions-table').style.display = 'none';
         return;
     }
-    
+
     elements.noTransactions.style.display = 'none';
     document.getElementById('transactions-table').style.display = 'table';
 
@@ -414,13 +440,13 @@ function renderTransactionsTable() {
 
 function renderTradesTable() {
     elements.tradesList.innerHTML = '';
-    
+
     if (state.trades.length === 0) {
         elements.noTrades.style.display = 'flex';
         document.getElementById('trades-table').style.display = 'none';
         return;
     }
-    
+
     elements.noTrades.style.display = 'none';
     document.getElementById('trades-table').style.display = 'table';
 
@@ -429,7 +455,7 @@ function renderTradesTable() {
         const pnl = Number(t.pnl);
         const pnlClass = pnl >= 0 ? 'success-text' : 'danger-text';
         const pnlPrefix = pnl >= 0 ? '+' : '';
-        
+
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td>${formatDate(t.date)}</td>
@@ -449,14 +475,14 @@ function renderTradesTable() {
 }
 
 function renderPnlCalendar() {
-    if (!elements.calGrid) return; 
+    if (!elements.calGrid) return;
 
     const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
     elements.calMonthDisplay.textContent = `${monthNames[currentCalDate.getMonth()]} ${currentCalDate.getFullYear()}`;
 
     const year = currentCalDate.getFullYear();
     const month = currentCalDate.getMonth();
-    
+
     // Group trades by date for this month
     const dailyPnl = {};
     state.trades.forEach(t => {

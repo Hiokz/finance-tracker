@@ -399,7 +399,9 @@ function setupEventListeners() {
             // Re-render the list so new trades update the session balance
             renderBacktestList();
         });
-    } window.addEventListener('click', (e) => {
+    }
+
+    window.addEventListener('click', (e) => {
         if (e.target.classList.contains('modal-overlay')) {
             closeModal(e.target);
             if (e.target.id === 'day-trades-modal') window.selectedTradeDate = null;

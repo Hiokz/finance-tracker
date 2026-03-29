@@ -9,6 +9,7 @@ let state = {
     trades: []
 };
 let currentUser = null;
+let currentCalDate = new Date();
 
 // DOM Elements Container
 let elements = {};
@@ -72,10 +73,13 @@ function initDOM() {
         transactionForm: document.getElementById('transaction-form'),
         tradeForm: document.getElementById('trade-form'),
 
-        transactionsList: document.getElementById('transactions-list'),
-        tradesList: document.getElementById('trades-list'),
         noTransactions: document.getElementById('no-transactions'),
-        noTrades: document.getElementById('no-trades')
+        noTrades: document.getElementById('no-trades'),
+
+        calMonthDisplay: document.getElementById('cal-month-display'),
+        calGrid: document.getElementById('pnl-calendar-grid'),
+        calPrevBtn: document.getElementById('cal-prev-month'),
+        calNextBtn: document.getElementById('cal-next-month')
     };
 }
 
@@ -180,6 +184,18 @@ function setupEventListeners() {
             });
         });
     });
+
+    // Calendar Navigation
+    if (elements.calPrevBtn) {
+        elements.calPrevBtn.addEventListener('click', () => {
+            currentCalDate.setMonth(currentCalDate.getMonth() - 1);
+            renderPnlCalendar();
+        });
+        elements.calNextBtn.addEventListener('click', () => {
+            currentCalDate.setMonth(currentCalDate.getMonth() + 1);
+            renderPnlCalendar();
+        });
+    }
 
     // Modals
     elements.btnAddTransaction.addEventListener('click', () => openModal(elements.transactionModal));
@@ -322,6 +338,7 @@ function renderAll() {
     renderDashboard();
     renderTransactionsTable();
     renderTradesTable();
+    renderPnlCalendar();
 }
 
 function renderDashboard() {
@@ -416,6 +433,87 @@ function renderTradesTable() {
         `;
         elements.tradesList.appendChild(tr);
     });
+}
+
+function renderPnlCalendar() {
+    if (!elements.calGrid) return; 
+
+    // Update Header
+    const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+    elements.calMonthDisplay.textContent = `${monthNames[currentCalDate.getMonth()]} ${currentCalDate.getFullYear()}`;
+
+    // Math prep
+    const year = currentCalDate.getFullYear();
+    const month = currentCalDate.getMonth();
+    
+    // Convert state to daily grouping mapping explicitly preventing timezone issues
+    const dailyPnl = {};
+    state.trades.forEach(t => {
+        const [tYear, tMonth, tDay] = t.date.split('-');
+        if (Number(tYear) === year && Number(tMonth) - 1 === month) {
+            if (!dailyPnl[t.date]) dailyPnl[t.date] = 0;
+            dailyPnl[t.date] += Number(t.pnl);
+        }
+    });
+
+    const firstDay = new Date(year, month, 1);
+    let startOffset = firstDay.getDay() - 1; // Align Mon=0
+    if (startOffset === -1) startOffset = 6; 
+    
+    let html = `
+        <div class="cal-header-cell">Mon</div>
+        <div class="cal-header-cell">Tue</div>
+        <div class="cal-header-cell">Wed</div>
+        <div class="cal-header-cell">Thu</div>
+        <div class="cal-header-cell">Fri</div>
+    `;
+
+    let currentIterDate = new Date(year, month, 1 - startOffset);
+    let loopCount = 0;
+    
+    while (loopCount < 42) {
+        const dayOfWeek = currentIterDate.getDay();
+        
+        if (dayOfWeek !== 0 && dayOfWeek !== 6) { // Skip Sat/Sun
+            const iterMonth = currentIterDate.getMonth();
+            const iterDateNum = currentIterDate.getDate();
+            const dateStr = `${currentIterDate.getFullYear()}-${String(iterMonth+1).padStart(2, '0')}-${String(iterDateNum).padStart(2, '0')}`;
+            
+            const isCurrentMonth = iterMonth === month;
+            let cellClass = isCurrentMonth ? 'cal-cell' : 'cal-cell empty';
+            let pnlHtml = '';
+
+            if (isCurrentMonth && dailyPnl[dateStr] !== undefined) {
+                const pnl = dailyPnl[dateStr];
+                if (pnl > 0) {
+                    cellClass += ' profit';
+                    pnlHtml = `<div class="cal-pnl success-text">+${formatCurrency(pnl)}</div>`;
+                } else if (pnl < 0) {
+                    cellClass += ' loss';
+                    pnlHtml = `<div class="cal-pnl danger-text">${formatCurrency(pnl)}</div>`;
+                } else {
+                    pnlHtml = `<div class="cal-pnl" style="color: #94a3b8;">$0.00</div>`;
+                }
+            }
+
+            html += `
+                <div class="${cellClass}">
+                    <div class="cal-date">${iterDateNum}</div>
+                    ${pnlHtml}
+                </div>
+            `;
+        }
+
+        currentIterDate.setDate(currentIterDate.getDate() + 1);
+        loopCount++;
+
+        // Stop rendering if completed the month and capped off the weekend
+        if (currentIterDate.getMonth() !== month && currentIterDate.getFullYear() >= year && currentIterDate.getDay() === 1) {
+            break; 
+        }
+    }
+
+    elements.calGrid.innerHTML = html;
 }
 
 // Helpers

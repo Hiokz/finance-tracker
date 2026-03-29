@@ -259,7 +259,7 @@ function setupEventListeners() {
             elements.loginError.style.display = 'none';
 
             const rawUsername = elements.loginUsername.value.trim().toLowerCase();
-            const email = `${rawUsername}@fintrack.local`;
+            const email = `${rawUsername}@fintracks.local`;
             const password = elements.loginPassword.value;
 
             const { error: signInError } = await supabaseClient.auth.signInWithPassword({ email, password });

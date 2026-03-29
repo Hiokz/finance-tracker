@@ -73,6 +73,8 @@ function initDOM() {
         transactionForm: document.getElementById('transaction-form'),
         tradeForm: document.getElementById('trade-form'),
 
+        transactionsList: document.getElementById('transactions-list'),
+        tradesList: document.getElementById('trades-list'),
         noTransactions: document.getElementById('no-transactions'),
         noTrades: document.getElementById('no-trades'),
 

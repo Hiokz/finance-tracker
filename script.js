@@ -305,10 +305,10 @@ async function handleTransactionSubmit(e) {
     const btn = elements.transactionForm.querySelector('button[type="submit"]');
     btn.disabled = true;
 
-    // Database requires category as NOT NULL so we silently pass 'Uncategorized' now that the UI field is removed
+    // The category column has been successfully removed from the database, so we insert without it
     const { data, error } = await supabaseClient
         .from('transactions')
-        .insert([{ user_id: currentUser.id, type, amount, description, category: 'Uncategorized', date }])
+        .insert([{ user_id: currentUser.id, type, amount, description, date }])
         .select();
 
     if (!error && data) {

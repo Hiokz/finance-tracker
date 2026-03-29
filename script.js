@@ -9,7 +9,6 @@ let state = {
     trades: []
 };
 let currentUser = null;
-let isSignUpMode = false;
 
 // DOM Elements
 const elements = {
@@ -22,8 +21,6 @@ const elements = {
     authTitle: document.getElementById('auth-title'),
     authSubtitle: document.getElementById('auth-subtitle'),
     authSubmitBtn: document.getElementById('auth-submit-btn'),
-    authToggleText: document.getElementById('auth-toggle-text'),
-    authToggleBtn: document.getElementById('auth-toggle-btn'),
     btnLogout: document.getElementById('btn-logout'),
     userDisplayEmail: document.getElementById('user-display-email'),
     appWrapper: document.getElementById('app-wrapper'),
@@ -112,29 +109,7 @@ function lockApp() {
 
 // Event Listeners
 function setupEventListeners() {
-    // Auth Mode Toggle
-    if (elements.authToggleBtn) {
-        elements.authToggleBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            isSignUpMode = !isSignUpMode;
-            elements.loginError.style.display = 'none';
-            if (isSignUpMode) {
-                elements.authTitle.textContent = 'Create Account';
-                elements.authSubtitle.textContent = 'Sign up to start tracking your finances.';
-                elements.authSubmitBtn.textContent = 'Sign Up';
-                elements.authToggleText.textContent = 'Already have an account?';
-                elements.authToggleBtn.textContent = 'Sign In';
-            } else {
-                elements.authTitle.textContent = 'FinTrack Secure Access';
-                elements.authSubtitle.textContent = 'Sign in to sync your financial data.';
-                elements.authSubmitBtn.textContent = 'Sign In';
-                elements.authToggleText.textContent = "Don't have an account?";
-                elements.authToggleBtn.textContent = 'Sign Up';
-            }
-        });
-    }
-
-    // Login / Signup Submit
+    // Login Submit
     if (elements.loginForm) {
         elements.loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -145,30 +120,17 @@ function setupEventListeners() {
             
             const email = elements.loginEmail.value;
             const password = elements.loginPassword.value;
-            let error;
 
-            if (isSignUpMode) {
-                const { error: signUpError } = await supabaseClient.auth.signUp({ email, password });
-                error = signUpError;
-                if(!error) {
-                    elements.loginError.textContent = 'Success! Please sign in.';
-                    elements.loginError.className = 'success-text';
-                    elements.loginError.style.display = 'block';
-                    elements.authToggleBtn.click(); // Switch back to login
-                }
-            } else {
-                const { error: signInError } = await supabaseClient.auth.signInWithPassword({ email, password });
-                error = signInError;
-            }
+            const { error: signInError } = await supabaseClient.auth.signInWithPassword({ email, password });
 
-            if (error) {
-                elements.loginError.textContent = error.message;
+            if (signInError) {
+                elements.loginError.textContent = signInError.message;
                 elements.loginError.className = 'danger-text';
                 elements.loginError.style.display = 'block';
             }
 
             elements.authSubmitBtn.disabled = false;
-            elements.authSubmitBtn.textContent = isSignUpMode ? 'Sign Up' : 'Sign In';
+            elements.authSubmitBtn.textContent = 'Sign In';
         });
     }
 

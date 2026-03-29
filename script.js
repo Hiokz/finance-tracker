@@ -54,8 +54,6 @@ function initDOM() {
         btnLogout: document.getElementById('btn-logout'),
         userDisplayEmail: document.getElementById('user-display-email'),
         appWrapper: document.getElementById('app-wrapper'),
-        mobileMenuBtn: document.getElementById('mobile-menu-btn'),
-        sidebar: document.querySelector('.sidebar'),
 
         totalBalanceCard: document.getElementById('total-balance-card'),
 
@@ -288,11 +286,6 @@ function setupEventListeners() {
             e.preventDefault();
             const targetId = item.getAttribute('data-target');
 
-            // Close mobile menu on navigate
-            if (elements.sidebar && elements.sidebar.classList.contains('mobile-open')) {
-                elements.sidebar.classList.remove('mobile-open');
-            }
-
             elements.navItems.forEach(nav => nav.classList.remove('active'));
             item.classList.add('active');
 
@@ -406,24 +399,10 @@ function setupEventListeners() {
         });
     }
 
-    // Mobile Menu Toggle
-    if (elements.mobileMenuBtn && elements.sidebar) {
-        elements.mobileMenuBtn.addEventListener('click', () => {
-            elements.sidebar.classList.toggle('mobile-open');
-        });
-    }
-
     window.addEventListener('click', (e) => {
         if (e.target.classList.contains('modal-overlay')) {
             closeModal(e.target);
             if (e.target.id === 'day-trades-modal') window.selectedTradeDate = null;
-        }
-
-        // Close sidebar if clicking outside on mobile
-        if (elements.sidebar && elements.sidebar.classList.contains('mobile-open')) {
-            if (!elements.sidebar.contains(e.target) && e.target !== elements.mobileMenuBtn && !elements.mobileMenuBtn.contains(e.target)) {
-                elements.sidebar.classList.remove('mobile-open');
-            }
         }
     });
 

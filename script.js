@@ -199,6 +199,19 @@ function setupEventListeners() {
         });
     }
 
+    // Toggle Buttons (Income/Expense, Long/Short)
+    document.querySelectorAll('.toggle-group').forEach(group => {
+        group.querySelectorAll('.toggle-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                group.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                // Sync the hidden input
+                const hiddenInput = group.parentElement.querySelector('input[type="hidden"]');
+                if (hiddenInput) hiddenInput.value = btn.dataset.value;
+            });
+        });
+    });
+
     // Modals
     elements.btnAddTransaction.addEventListener('click', () => openModal(elements.transactionModal));
     elements.btnAddTrade.addEventListener('click', () => openModal(elements.tradeModal));

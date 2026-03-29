@@ -9,11 +9,16 @@
             <div class="modal-body">
                 <form id="transaction-form">
                     <div class="form-group">
-                        <label for="tx-type">Type</label>
-                        <select id="tx-type" required>
-                            <option value="income">Income</option>
-                            <option value="expense">Expense</option>
-                        </select>
+                        <label>Type</label>
+                        <input type="hidden" id="tx-type" value="income">
+                        <div class="toggle-group">
+                            <button type="button" class="toggle-btn active income-toggle" data-value="income">
+                                <i class="fa-solid fa-arrow-trend-up"></i> Income
+                            </button>
+                            <button type="button" class="toggle-btn expense-toggle" data-value="expense">
+                                <i class="fa-solid fa-arrow-trend-down"></i> Expense
+                            </button>
+                        </div>
                     </div>
                     <div class="form-group">
                         <label for="tx-amount">Amount</label>
@@ -52,11 +57,16 @@
                     </div>
                     <div class="form-row">
                         <div class="form-group">
-                            <label for="td-direction">Direction</label>
-                            <select id="td-direction" required>
-                                <option value="long">Long</option>
-                                <option value="short">Short</option>
-                            </select>
+                            <label>Direction</label>
+                            <input type="hidden" id="td-direction" value="long">
+                            <div class="toggle-group">
+                                <button type="button" class="toggle-btn active long-toggle" data-value="long">
+                                    <i class="fa-solid fa-arrow-up"></i> Long
+                                </button>
+                                <button type="button" class="toggle-btn short-toggle" data-value="short">
+                                    <i class="fa-solid fa-arrow-down"></i> Short
+                                </button>
+                            </div>
                         </div>
                         <div class="form-group">
                             <label for="td-date">Date</label>

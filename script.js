@@ -209,24 +209,21 @@ function calculateXauusdPnl() {
 function calculateBtXauusdPnl() {
     const entryEl = document.getElementById('bt-td-entry');
     const exitEl = document.getElementById('bt-td-exit');
-    const lotsEl = document.getElementById('bt-td-lot');
+    const lotsEl = document.getElementById('bt-td-lots');
     const prevEl = document.getElementById('bt-td-pnl-preview');
-    // Using custom logic since hidden inputs need extraction
-    const dirLong = document.getElementById('bt-dir-long');
-    const dirShort = document.getElementById('bt-dir-short');
+    const dirInput = document.getElementById('bt-td-direction');
 
-    if (!entryEl || !exitEl || !lotsEl || !prevEl) return;
+    if (!entryEl || !exitEl || !lotsEl || !prevEl || !dirInput) return;
 
-    let dir = 'long';
-    if (dirShort && dirShort.checked) dir = 'short';
+    let dir = dirInput.value;
 
     const entry = parseFloat(entryEl.value);
     const exit = parseFloat(exitEl.value);
     const lots = parseFloat(lotsEl.value);
 
     if (isNaN(entry) || isNaN(exit) || isNaN(lots) || lots <= 0) {
-        prevEl.textContent = '+ $0.00';
-        prevEl.className = 'success-text';
+        prevEl.value = '';
+        prevEl.className = '';
         return;
     }
 
@@ -237,8 +234,18 @@ function calculateBtXauusdPnl() {
         pnl = (entry - exit) * lots * 100;
     }
 
-    prevEl.textContent = (pnl >= 0 ? '+ $' : '- $') + Math.abs(pnl).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    prevEl.className = pnl >= 0 ? 'success-text' : 'danger-text';
+    // Format like trading journal ui
+    const formattedPnl = Math.abs(pnl).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    if (pnl > 0) {
+        prevEl.value = `+ $${formattedPnl}`;
+        prevEl.className = 'success-text';
+    } else if (pnl < 0) {
+        prevEl.value = `- $${formattedPnl}`;
+        prevEl.className = 'danger-text';
+    } else {
+        prevEl.value = `$0.00`;
+        prevEl.className = '';
+    }
 }
 
 function setupEventListeners() {
@@ -333,6 +340,7 @@ function setupEventListeners() {
                 if (hiddenInput) {
                     hiddenInput.value = btn.dataset.value;
                     if (hiddenInput.id === 'td-direction') calculateXauusdPnl();
+                    if (hiddenInput.id === 'bt-td-direction') calculateBtXauusdPnl();
                 }
             });
         });
@@ -343,7 +351,7 @@ function setupEventListeners() {
         if (e.target.id === 'td-entry' || e.target.id === 'td-exit' || e.target.id === 'td-lots') {
             calculateXauusdPnl();
         }
-        if (e.target.id === 'bt-td-entry' || e.target.id === 'bt-td-exit' || e.target.id === 'bt-td-lot') {
+        if (e.target.id === 'bt-td-entry' || e.target.id === 'bt-td-exit' || e.target.id === 'bt-td-lots') {
             calculateBtXauusdPnl();
         }
     });
@@ -371,8 +379,8 @@ function setupEventListeners() {
     if (elements.btnOpenBacktestTrade) {
         elements.btnOpenBacktestTrade.addEventListener('click', () => {
             openModal(elements.backtestTradeModal);
-            document.getElementById('bt-td-pnl-preview').textContent = '+ $0.00';
-            document.getElementById('bt-td-pnl-preview').className = 'success-text';
+            document.getElementById('bt-td-pnl-preview').value = '';
+            document.getElementById('bt-td-pnl-preview').className = '';
         });
     }
     if (elements.closeBacktestTradeModal) elements.closeBacktestTradeModal.addEventListener('click', () => closeModal(elements.backtestTradeModal));
@@ -657,12 +665,8 @@ async function handleBacktestTradeSubmit(e) {
     btn.disabled = true;
 
     const asset = document.getElementById('bt-td-asset').value;
-    
-    // Hidden inputs via toggle
-    const dirLong = document.getElementById('bt-dir-long');
-    const direction = dirLong.checked ? 'long' : 'short';
-
-    const lots = parseFloat(document.getElementById('bt-td-lot').value);
+    const direction = document.getElementById('bt-td-direction').value;
+    const lots = parseFloat(document.getElementById('bt-td-lots').value);
     const entry = parseFloat(document.getElementById('bt-td-entry').value);
     const exit = parseFloat(document.getElementById('bt-td-exit').value);
     const date = document.getElementById('bt-td-date').value;
@@ -704,18 +708,9 @@ async function handleBacktestTradeSubmit(e) {
         state.backtestTrades.unshift(data[0]);
         state.backtestTrades.sort((a, b) => new Date(b.date) - new Date(a.date));
         closeModal(elements.backtestTradeModal);
-        
-        // Custom reset
-        elements.backtestTradeForm.reset();
-        document.getElementById('bt-dir-long').checked = true;
-        document.getElementById('bt-dir-short').checked = false;
-        const toggleGroups = elements.backtestTradeForm.querySelectorAll('.toggle-group');
-        if (toggleGroups.length > 0) {
-            toggleGroups[0].querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('active'));
-            toggleGroups[0].querySelector('label[for="bt-dir-long"]').classList.add('active');
-        }
-        document.getElementById('bt-td-pnl-preview').textContent = '+ $0.00';
-        document.getElementById('bt-td-pnl-preview').className = 'success-text';
+
+        // Form resetting handled automatically by closeModal
+        document.getElementById('bt-td-pnl-preview').value = '';
 
         renderActiveBacktest();
     } else {
@@ -738,7 +733,7 @@ function renderAll() {
     renderDashboard();
     renderTransactionsTable();
     renderPnlCalendar();
-    
+
     if (window.selectedBacktestId) {
         renderActiveBacktest();
     } else {
@@ -1003,7 +998,7 @@ function renderBacktestList() {
     });
 }
 
-window.openBacktestSession = function(id) {
+window.openBacktestSession = function (id) {
     window.selectedBacktestId = id;
     elements.listViewBacktest.style.display = 'none';
     elements.activeViewBacktest.style.display = 'block';
@@ -1029,7 +1024,7 @@ function renderActiveBacktest() {
     const initial = Number(session.initial_balance);
     const totalPnl = trades.reduce((acc, curr) => acc + Number(curr.pnl), 0);
     const winningTrades = trades.filter(t => Number(t.pnl) > 0).length;
-    
+
     const current = initial + totalPnl;
     const netGrowth = ((current - initial) / initial) * 100;
     const winRate = trades.length > 0 ? ((winningTrades / trades.length) * 100).toFixed(1) : 0;
@@ -1037,15 +1032,15 @@ function renderActiveBacktest() {
     elements.btInitBal.textContent = formatCurrency(initial);
     elements.btCurrBal.textContent = formatCurrency(current);
     elements.btCurrBal.className = current >= initial ? 'success-text' : 'danger-text';
-    
+
     elements.btNetPnl.textContent = `${netGrowth >= 0 ? '+' : ''}${netGrowth.toFixed(2)}%`;
     elements.btNetPnl.className = `trend ${netGrowth >= 0 ? 'positive' : 'negative'}`;
-    
+
     elements.btWinRate.textContent = `${winRate}%`;
     elements.btTotalTrades.textContent = trades.length;
 
     elements.backtestTradesList.innerHTML = '';
-    
+
     if (trades.length === 0) {
         elements.backtestTradesList.innerHTML = `<tr><td colspan="7" style="text-align:center; padding: 2rem; color: var(--text-muted);">No trades logged in this session yet.</td></tr>`;
         return;

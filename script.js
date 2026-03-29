@@ -76,7 +76,6 @@ function initDOM() {
         transactionsList: document.getElementById('transactions-list'),
         tradesList: document.getElementById('trades-list'),
         noTransactions: document.getElementById('no-transactions'),
-        noTrades: document.getElementById('no-trades'),
 
         calMonthDisplay: document.getElementById('cal-month-display'),
         calGrid: document.getElementById('pnl-calendar-grid'),
@@ -443,12 +442,10 @@ function renderTradesTable() {
     elements.tradesList.innerHTML = '';
 
     if (state.trades.length === 0) {
-        elements.noTrades.style.display = 'flex';
-        document.getElementById('trades-table').style.display = 'none';
+        document.getElementById('trades-table').style.display = 'table';
         return;
     }
 
-    elements.noTrades.style.display = 'none';
     document.getElementById('trades-table').style.display = 'table';
 
     state.trades.forEach(t => {

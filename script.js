@@ -440,28 +440,22 @@ function renderTradesTable() {
 function renderPnlCalendar() {
     if (!elements.calGrid) return; 
 
-    // Update Header
     const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
     elements.calMonthDisplay.textContent = `${monthNames[currentCalDate.getMonth()]} ${currentCalDate.getFullYear()}`;
 
-    // Math prep
     const year = currentCalDate.getFullYear();
     const month = currentCalDate.getMonth();
     
-    // Convert state to daily grouping mapping explicitly preventing timezone issues
+    // Group trades by date for this month
     const dailyPnl = {};
     state.trades.forEach(t => {
-        const [tYear, tMonth, tDay] = t.date.split('-');
+        const [tYear, tMonth] = t.date.split('-');
         if (Number(tYear) === year && Number(tMonth) - 1 === month) {
             if (!dailyPnl[t.date]) dailyPnl[t.date] = 0;
             dailyPnl[t.date] += Number(t.pnl);
         }
     });
 
-    const firstDay = new Date(year, month, 1);
-    let startOffset = firstDay.getDay() - 1; // Align Mon=0
-    if (startOffset === -1) startOffset = 6; 
-    
     let html = `
         <div class="cal-header-cell">Mon</div>
         <div class="cal-header-cell">Tue</div>
@@ -470,48 +464,61 @@ function renderPnlCalendar() {
         <div class="cal-header-cell">Fri</div>
     `;
 
-    let currentIterDate = new Date(year, month, 1 - startOffset);
-    let loopCount = 0;
-    
-    while (loopCount < 42) {
-        const dayOfWeek = currentIterDate.getDay();
-        
-        if (dayOfWeek !== 0 && dayOfWeek !== 6) { // Skip Sat/Sun
-            const iterMonth = currentIterDate.getMonth();
-            const iterDateNum = currentIterDate.getDate();
-            const dateStr = `${currentIterDate.getFullYear()}-${String(iterMonth+1).padStart(2, '0')}-${String(iterDateNum).padStart(2, '0')}`;
-            
-            const isCurrentMonth = iterMonth === month;
-            let cellClass = isCurrentMonth ? 'cal-cell' : 'cal-cell empty';
-            let pnlHtml = '';
+    // Collect only weekdays (Mon-Fri) for the current month
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const weekdayCells = [];
 
-            if (isCurrentMonth && dailyPnl[dateStr] !== undefined) {
-                const pnl = dailyPnl[dateStr];
-                if (pnl > 0) {
-                    cellClass += ' profit';
-                    pnlHtml = `<div class="cal-pnl success-text">+${formatCurrency(pnl)}</div>`;
-                } else if (pnl < 0) {
-                    cellClass += ' loss';
-                    pnlHtml = `<div class="cal-pnl danger-text">${formatCurrency(pnl)}</div>`;
-                } else {
-                    pnlHtml = `<div class="cal-pnl" style="color: #94a3b8;">$0.00</div>`;
-                }
+    for (let d = 1; d <= daysInMonth; d++) {
+        const dow = new Date(year, month, d).getDay();
+        if (dow >= 1 && dow <= 5) { // Mon=1 to Fri=5
+            const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+            weekdayCells.push({ day: d, dateStr, isCurrentMonth: true });
+        }
+    }
+
+    // Pad the FIRST row: if the month doesn't start on Monday, leave empty cells
+    if (weekdayCells.length > 0) {
+        const firstDow = new Date(year, month, weekdayCells[0].day).getDay(); // 1=Mon ... 5=Fri
+        const padStart = firstDow - 1; // Mon needs 0 pads, Tue needs 1, etc.
+        for (let i = 0; i < padStart; i++) {
+            html += `<div class="cal-cell empty"><div class="cal-date"></div></div>`;
+        }
+    }
+
+    // Render each weekday cell
+    weekdayCells.forEach(cell => {
+        let cellClass = 'cal-cell';
+        let pnlHtml = '';
+
+        if (dailyPnl[cell.dateStr] !== undefined) {
+            const pnl = dailyPnl[cell.dateStr];
+            if (pnl > 0) {
+                cellClass += ' profit';
+                pnlHtml = `<div class="cal-pnl success-text">+${formatCurrency(pnl)}</div>`;
+            } else if (pnl < 0) {
+                cellClass += ' loss';
+                pnlHtml = `<div class="cal-pnl danger-text">${formatCurrency(pnl)}</div>`;
+            } else {
+                pnlHtml = `<div class="cal-pnl" style="color: #94a3b8;">$0.00</div>`;
             }
-
-            html += `
-                <div class="${cellClass}">
-                    <div class="cal-date">${iterDateNum}</div>
-                    ${pnlHtml}
-                </div>
-            `;
         }
 
-        currentIterDate.setDate(currentIterDate.getDate() + 1);
-        loopCount++;
+        html += `
+            <div class="${cellClass}">
+                <div class="cal-date">${cell.day}</div>
+                ${pnlHtml}
+            </div>
+        `;
+    });
 
-        // Stop rendering if completed the month and capped off the weekend
-        if (currentIterDate.getMonth() !== month && currentIterDate.getFullYear() >= year && currentIterDate.getDay() === 1) {
-            break; 
+    // Pad the LAST row with next month's days to fill remaining cells
+    if (weekdayCells.length > 0) {
+        const lastDay = weekdayCells[weekdayCells.length - 1].day;
+        const lastDow = new Date(year, month, lastDay).getDay(); // 1=Mon ... 5=Fri
+        const padEnd = 5 - lastDow;
+        let nextDay = 1;
+        for (let i = 0; i < padEnd; i++) {
+            html += `<div class="cal-cell empty"><div class="cal-date">${nextDay++}</div></div>`;
         }
     }
 

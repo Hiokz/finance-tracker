@@ -5,7 +5,7 @@ $g = [System.Drawing.Graphics]::FromImage($bmp)
 $g.Clear([System.Drawing.Color]::Transparent)
 $g.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::AntiAlias
 
-$radius = 120
+$radius = 256
 $path = New-Object System.Drawing.Drawing2D.GraphicsPath
 $path.AddArc(0, 0, $radius, $radius, 180, 90)
 $path.AddArc($img.Width - $radius, 0, $radius, $radius, 270, 90)

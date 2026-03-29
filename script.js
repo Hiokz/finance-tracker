@@ -395,10 +395,11 @@ function setupEventListeners() {
             elements.btnCloseBacktest.style.display = 'none';
             elements.btnOpenBacktestTrade.style.display = 'none';
             elements.btSectionHeading.textContent = 'Backtesting Sessions';
-        });
-    }
 
-    window.addEventListener('click', (e) => {
+            // Re-render the list so new trades update the session balance
+            renderBacktestList();
+        });
+    } window.addEventListener('click', (e) => {
         if (e.target.classList.contains('modal-overlay')) {
             closeModal(e.target);
             if (e.target.id === 'day-trades-modal') window.selectedTradeDate = null;

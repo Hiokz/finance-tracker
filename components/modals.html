@@ -47,9 +47,16 @@
             </div>
             <div class="modal-body">
                 <form id="trade-form">
-                    <div class="form-group">
-                        <label for="td-asset">Asset (e.g., BTC/USD, AAPL)</label>
-                        <input type="text" id="td-asset" required placeholder="Asset Pair">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="td-asset">Asset</label>
+                            <input type="text" id="td-asset" value="XAUUSD" readonly
+                                style="background: var(--bg-color); cursor: not-allowed; color: var(--text-color);">
+                        </div>
+                        <div class="form-group">
+                            <label for="td-lots">Lot Size</label>
+                            <input type="number" id="td-lots" step="0.01" min="0.01" required placeholder="1.00">
+                        </div>
                     </div>
                     <div class="form-row">
                         <div class="form-group">
@@ -72,16 +79,32 @@
                     <div class="form-row">
                         <div class="form-group">
                             <label for="td-entry">Entry Price</label>
-                            <input type="number" id="td-entry" step="0.00001" min="0" required placeholder="0.00">
+                            <input type="number" id="td-entry" step="0.001" min="0" required placeholder="0.000">
                         </div>
                         <div class="form-group">
                             <label for="td-exit">Exit Price</label>
-                            <input type="number" id="td-exit" step="0.00001" min="0" required placeholder="0.00">
+                            <input type="number" id="td-exit" step="0.001" min="0" required placeholder="0.000">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="td-sl">Stop Loss</label>
+                            <input type="number" id="td-sl" step="0.001" min="0" placeholder="0.000 (Optional)">
+                        </div>
+                        <div class="form-group">
+                            <label for="td-tp">Take Profit</label>
+                            <input type="number" id="td-tp" step="0.001" min="0" placeholder="0.000 (Optional)">
                         </div>
                     </div>
                     <div class="form-group">
+                        <label for="td-pnl-preview">Auto-Calculated P&L ($)</label>
+                        <input type="text" id="td-pnl-preview" readonly placeholder="$0.00"
+                            style="background: var(--bg-color); cursor: not-allowed; font-weight: bold;">
+                    </div>
+                    <div class="form-group">
                         <label for="td-notes">Notes / Confluence</label>
-                        <textarea id="td-notes" rows="3" placeholder="Why did you take this trade?"></textarea>
+                        <textarea id="td-notes" rows="3" placeholder="Why did you take this trade?"
+                            style="resize: none;"></textarea>
                     </div>
                     <button type="submit" class="btn btn-primary btn-block">Log Trade</button>
                 </form>

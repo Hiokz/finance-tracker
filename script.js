@@ -137,6 +137,38 @@ function lockApp() {
 }
 
 // Event Listeners
+// Auto P&L Calculation for XAUUSD (1 Lot = 100 units)
+function calculateXauusdPnl() {
+    const entryEl = document.getElementById('td-entry');
+    const exitEl = document.getElementById('td-exit');
+    const lotsEl = document.getElementById('td-lots');
+    const dirEl = document.getElementById('td-direction');
+    const prevEl = document.getElementById('td-pnl-preview');
+
+    if (!entryEl || !exitEl || !lotsEl || !dirEl || !prevEl) return;
+
+    const entry = parseFloat(entryEl.value);
+    const exit = parseFloat(exitEl.value);
+    const lots = parseFloat(lotsEl.value);
+    const dir = dirEl.value;
+
+    if (isNaN(entry) || isNaN(exit) || isNaN(lots) || lots <= 0) {
+        prevEl.value = '$0.00';
+        prevEl.className = '';
+        return;
+    }
+
+    let pnl = 0;
+    if (dir === 'long') {
+        pnl = (exit - entry) * lots * 100;
+    } else {
+        pnl = (entry - exit) * lots * 100;
+    }
+
+    prevEl.value = (pnl >= 0 ? '+$' : '-$') + Math.abs(pnl).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    prevEl.className = pnl >= 0 ? 'success-text' : 'danger-text';
+}
+
 function setupEventListeners() {
     // Login Submit
     if (elements.loginForm) {
@@ -219,9 +251,19 @@ function setupEventListeners() {
                 btn.classList.add('active');
                 // Sync the hidden input
                 const hiddenInput = group.parentElement.querySelector('input[type="hidden"]');
-                if (hiddenInput) hiddenInput.value = btn.dataset.value;
+                if (hiddenInput) {
+                    hiddenInput.value = btn.dataset.value;
+                    if (hiddenInput.id === 'td-direction') calculateXauusdPnl();
+                }
             });
         });
+    });
+
+    // Trade Inputs for Auto P&L
+    document.addEventListener('input', (e) => {
+        if (e.target.id === 'td-entry' || e.target.id === 'td-exit' || e.target.id === 'td-lots') {
+            calculateXauusdPnl();
+        }
     });
 
     // Modals
@@ -361,27 +403,56 @@ async function handleTradeSubmit(e) {
     e.preventDefault();
     if (!currentUser) return;
 
-    const asset = document.getElementById('td-asset').value;
-    const direction = document.getElementById('td-direction').value;
-    const date = document.getElementById('td-date').value;
-    const entry_price = parseFloat(document.getElementById('td-entry').value);
-    const exit_price = parseFloat(document.getElementById('td-exit').value);
-    const notes = document.getElementById('td-notes').value;
-
-    let pnl = direction === 'long' ? (exit_price - entry_price) : (entry_price - exit_price);
-
     const btn = elements.tradeForm.querySelector('button[type="submit"]');
     btn.disabled = true;
 
+    const asset = document.getElementById('td-asset').value;
+    const direction = document.getElementById('td-direction').value;
+    const date = document.getElementById('td-date').value;
+    const entry = parseFloat(document.getElementById('td-entry').value);
+    const exit = parseFloat(document.getElementById('td-exit').value);
+    const lots = parseFloat(document.getElementById('td-lots').value);
+
+    const slRaw = document.getElementById('td-sl').value;
+    const tpRaw = document.getElementById('td-tp').value;
+    const stop_loss = slRaw ? parseFloat(slRaw) : 0;
+    const take_profit = tpRaw ? parseFloat(tpRaw) : 0;
+
+    const notes = document.getElementById('td-notes').value;
+
+    // Recalculate PnL securely before saving
+    let pnl = 0;
+    if (direction === 'long') {
+        pnl = (exit - entry) * lots * 100;
+    } else {
+        pnl = (entry - exit) * lots * 100;
+    }
+
+    const payload = {
+        user_id: currentUser.id,
+        asset: asset,
+        direction: direction,
+        entry_price: entry,
+        exit_price: exit,
+        pnl: pnl,
+        notes: notes,
+        date: date,
+        lot_size: lots,
+        stop_loss: stop_loss,
+        take_profit: take_profit
+    };
+
     const { data, error } = await supabaseClient
         .from('trades')
-        .insert([{ user_id: currentUser.id, asset, direction, date, entry_price, exit_price, pnl, notes }])
+        .insert([payload])
         .select();
 
     if (!error && data) {
-        state.trades.unshift(data[0]);
+        state.trades.push(data[0]);
         state.trades.sort((a, b) => new Date(b.date) - new Date(a.date));
         closeModal(elements.tradeModal);
+        elements.tradeForm.reset();
+        document.getElementById('td-pnl-preview').value = '';
         renderAll();
         if (window.selectedTradeDate && elements.dayTradesModal && elements.dayTradesModal.classList.contains('active')) {
             renderDayTrades();

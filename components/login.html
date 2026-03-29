@@ -1,0 +1,19 @@
+<div id="login-overlay" class="login-overlay glass-panel active">
+    <div class="login-container">
+        <div class="logo">
+            <i class="fa-solid fa-lock logo-icon"></i>
+            <h2 id="auth-title">FinTrack Secure Access</h2>
+        </div>
+        <p class="login-subtext" id="auth-subtitle">Sign in to sync your financial data.</p>
+        <form id="login-form">
+            <div class="form-group">
+                <input type="text" id="login-username" placeholder="Username" required>
+            </div>
+            <div class="form-group">
+                <input type="password" id="login-password" placeholder="Password" required>
+            </div>
+            <div id="login-error" class="danger-text" style="display: none; font-size: 0.85rem; margin-top: -10px; margin-bottom: 15px;"></div>
+            <button type="submit" id="auth-submit-btn" class="btn btn-primary btn-block">Sign In</button>
+        </form>
+    </div>
+</div>

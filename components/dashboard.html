@@ -1,0 +1,53 @@
+<section id="dashboard-section" class="content-section active">
+    <!-- Dashboard widgets will go here -->
+    <div class="dashboard-grid">
+        <!-- Total Balance Card -->
+        <div class="card stat-card total-balance gradient-border">
+            <div class="card-header">
+                <h3>Total Balance</h3>
+                <i class="fa-solid fa-wallet card-icon"></i>
+            </div>
+            <div class="card-body">
+                <h1 class="balance-amount" id="dash-total-balance">$0.00</h1>
+                <div class="trend positive">
+                    <i class="fa-solid fa-arrow-up"></i>
+                    <span>$0.00 this month</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Income Card -->
+        <div class="card stat-card income">
+            <div class="card-header">
+                <h3>Total Income</h3>
+                <i class="fa-solid fa-arrow-trend-up card-icon success-text"></i>
+            </div>
+            <div class="card-body">
+                <h2 id="dash-total-income" class="success-text">+$0.00</h2>
+            </div>
+        </div>
+
+        <!-- Expense Card -->
+        <div class="card stat-card expense">
+            <div class="card-header">
+                <h3>Total Expense</h3>
+                <i class="fa-solid fa-arrow-trend-down card-icon danger-text"></i>
+            </div>
+            <div class="card-body">
+                <h2 id="dash-total-expense" class="danger-text">-$0.00</h2>
+            </div>
+        </div>
+        
+        <!-- Mini Trading Stats -->
+        <div class="card stat-card trading-stats">
+             <div class="card-header">
+                <h3>Trading PnL</h3>
+                <i class="fa-solid fa-chart-pie card-icon primary-text"></i>
+            </div>
+            <div class="card-body">
+                <h2 id="dash-trading-pnl">$0.00</h2>
+                <p class="sub-text">Win Rate: <span id="dash-win-rate">0%</span></p>
+            </div>
+        </div>
+    </div>
+</section>

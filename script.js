@@ -10,60 +10,80 @@ let state = {
 };
 let currentUser = null;
 
-// DOM Elements
-const elements = {
-    // Login
-    loginOverlay: document.getElementById('login-overlay'),
-    loginForm: document.getElementById('login-form'),
-    loginUsername: document.getElementById('login-username'),
-    loginPassword: document.getElementById('login-password'),
-    loginError: document.getElementById('login-error'),
-    authTitle: document.getElementById('auth-title'),
-    authSubtitle: document.getElementById('auth-subtitle'),
-    authSubmitBtn: document.getElementById('auth-submit-btn'),
-    btnLogout: document.getElementById('btn-logout'),
-    userDisplayEmail: document.getElementById('user-display-email'),
-    appWrapper: document.getElementById('app-wrapper'),
+// DOM Elements Container
+let elements = {};
 
-    // Navigation
-    navItems: document.querySelectorAll('.nav-item'),
-    sections: document.querySelectorAll('.content-section'),
-    pageTitle: document.getElementById('page-title'),
-    currentDate: document.getElementById('current-date'),
+// Inject HTML Components
+async function loadComponents() {
+    const componentsToLoad = [
+        { id: 'login-placeholder', url: 'components/login.html' },
+        { id: 'sidebar-placeholder', url: 'components/sidebar.html' },
+        { id: 'dashboard-placeholder', url: 'components/dashboard.html' },
+        { id: 'transactions-placeholder', url: 'components/transactions.html' },
+        { id: 'journal-placeholder', url: 'components/journal.html' },
+        { id: 'modals-placeholder', url: 'components/modals.html' }
+    ];
 
-    // Dashboard
-    dashTotalBalance: document.getElementById('dash-total-balance'),
-    dashTotalIncome: document.getElementById('dash-total-income'),
-    dashTotalExpense: document.getElementById('dash-total-expense'),
-    dashTradingPnl: document.getElementById('dash-trading-pnl'),
-    dashWinRate: document.getElementById('dash-win-rate'),
-    
-    // Modals
-    transactionModal: document.getElementById('transaction-modal'),
-    tradeModal: document.getElementById('trade-modal'),
-    btnAddTransaction: document.getElementById('btn-add-transaction'),
-    btnAddTrade: document.getElementById('btn-add-trade'),
-    closeTransactionModal: document.getElementById('close-transaction-modal'),
-    closeTradeModal: document.getElementById('close-trade-modal'),
-    
-    // Forms
-    transactionForm: document.getElementById('transaction-form'),
-    tradeForm: document.getElementById('trade-form'),
+    for (const comp of componentsToLoad) {
+        try {
+            const response = await fetch(comp.url);
+            if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
+            const html = await response.text();
+            document.getElementById(comp.id).outerHTML = html;
+        } catch (error) {
+            console.error(`Failed to load component ${comp.url}:`, error);
+        }
+    }
+}
 
-    // Tables
-    transactionsList: document.getElementById('transactions-list'),
-    tradesList: document.getElementById('trades-list'),
-    noTransactions: document.getElementById('no-transactions'),
-    noTrades: document.getElementById('no-trades'),
-    
-    // Chart
-    canvas: document.getElementById('cashflowChart')
-};
+// Map DOM Elements after Injection
+function initDOM() {
+    elements = {
+        loginOverlay: document.getElementById('login-overlay'),
+        loginForm: document.getElementById('login-form'),
+        loginUsername: document.getElementById('login-username'),
+        loginPassword: document.getElementById('login-password'),
+        loginError: document.getElementById('login-error'),
+        authTitle: document.getElementById('auth-title'),
+        authSubtitle: document.getElementById('auth-subtitle'),
+        authSubmitBtn: document.getElementById('auth-submit-btn'),
+        btnLogout: document.getElementById('btn-logout'),
+        userDisplayEmail: document.getElementById('user-display-email'),
+        appWrapper: document.getElementById('app-wrapper'),
 
-let cashflowChartInstance = null;
+        navItems: document.querySelectorAll('.nav-item'),
+        sections: document.querySelectorAll('.content-section'),
+        pageTitle: document.getElementById('page-title'),
+        currentDate: document.getElementById('current-date'),
+
+        dashTotalBalance: document.getElementById('dash-total-balance'),
+        dashTotalIncome: document.getElementById('dash-total-income'),
+        dashTotalExpense: document.getElementById('dash-total-expense'),
+        dashTradingPnl: document.getElementById('dash-trading-pnl'),
+        dashWinRate: document.getElementById('dash-win-rate'),
+        
+        transactionModal: document.getElementById('transaction-modal'),
+        tradeModal: document.getElementById('trade-modal'),
+        btnAddTransaction: document.getElementById('btn-add-transaction'),
+        btnAddTrade: document.getElementById('btn-add-trade'),
+        closeTransactionModal: document.getElementById('close-transaction-modal'),
+        closeTradeModal: document.getElementById('close-trade-modal'),
+        
+        transactionForm: document.getElementById('transaction-form'),
+        tradeForm: document.getElementById('trade-form'),
+
+        transactionsList: document.getElementById('transactions-list'),
+        tradesList: document.getElementById('trades-list'),
+        noTransactions: document.getElementById('no-transactions'),
+        noTrades: document.getElementById('no-trades')
+    };
+}
 
 // Initialize Application
 async function init() {
+    await loadComponents(); // Must run first to build the page
+    
+    initDOM(); // Now that HTML is loaded, find elements
     setupEventListeners();
     updateDateDisplay();
     
@@ -81,7 +101,6 @@ async function init() {
 async function handleAuthState(session) {
     if (session) {
         currentUser = session.user;
-        // Display the username (which is everything before @fintrack.local)
         elements.userDisplayEmail.textContent = currentUser.email.split('@')[0];
         unlockApp();
         await loadData();
@@ -102,7 +121,6 @@ function unlockApp() {
 function lockApp() {
     elements.appWrapper.style.display = 'none';
     elements.loginOverlay.style.display = 'flex';
-    // Small delay to allow display:flex to apply before opacity transition
     setTimeout(() => {
         elements.loginOverlay.classList.add('active');
     }, 10);
@@ -120,7 +138,7 @@ function setupEventListeners() {
             elements.loginError.style.display = 'none';
             
             const rawUsername = elements.loginUsername.value.trim().toLowerCase();
-            const email = `${rawUsername}@fintrack.local`; // Convert username to a dummy email for Supabase
+            const email = `${rawUsername}@fintrack.local`; 
             const password = elements.loginPassword.value;
 
             const { error: signInError } = await supabaseClient.auth.signInWithPassword({ email, password });
@@ -197,7 +215,6 @@ function closeModal(modal) {
 
 // Database Operations
 async function loadData() {
-    // Fetch Transactions
     const { data: txData, error: txError } = await supabaseClient
         .from('transactions')
         .select('*')
@@ -207,7 +224,6 @@ async function loadData() {
         state.transactions = txData;
     }
 
-    // Fetch Trades
     const { data: trData, error: trError } = await supabaseClient
         .from('trades')
         .select('*')
@@ -239,7 +255,7 @@ async function handleTransactionSubmit(e) {
         .select();
 
     if (!error && data) {
-        state.transactions.unshift(data[0]); // Add to top
+        state.transactions.unshift(data[0]); 
         state.transactions.sort((a, b) => new Date(b.date) - new Date(a.date));
         closeModal(elements.transactionModal);
         renderAll();
@@ -306,7 +322,6 @@ function renderAll() {
     renderDashboard();
     renderTransactionsTable();
     renderTradesTable();
-    updateChart();
 }
 
 function renderDashboard() {
@@ -400,69 +415,6 @@ function renderTradesTable() {
             </td>
         `;
         elements.tradesList.appendChild(tr);
-    });
-}
-
-function updateChart() {
-    const ctx = elements.canvas.getContext('2d');
-    
-    if (cashflowChartInstance) {
-        cashflowChartInstance.destroy();
-    }
-    
-    const dateMap = {};
-    const sortedTx = [...state.transactions].reverse();
-    
-    sortedTx.forEach(t => {
-        if(!dateMap[t.date]) {
-            dateMap[t.date] = { income: 0, expense: 0 };
-        }
-        if(t.type === 'income') dateMap[t.date].income += Number(t.amount);
-        if(t.type === 'expense') dateMap[t.date].expense += Number(t.amount);
-    });
-
-    const labels = Object.keys(dateMap).slice(-7);
-    const incomeData = labels.map(date => dateMap[date].income);
-    const expenseData = labels.map(date => dateMap[date].expense);
-
-    cashflowChartInstance = new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels: labels.map(d => formatDate(d)),
-            datasets: [
-                {
-                    label: 'Income',
-                    data: incomeData,
-                    backgroundColor: 'rgba(0, 230, 118, 0.8)',
-                    borderRadius: 4
-                },
-                {
-                    label: 'Expense',
-                    data: expenseData,
-                    backgroundColor: 'rgba(255, 51, 102, 0.8)',
-                    borderRadius: 4
-                }
-            ]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    labels: { color: '#f0f2f5' }
-                }
-            },
-            scales: {
-                y: {
-                    ticks: { color: '#94a3b8' },
-                    grid: { color: 'rgba(255, 255, 255, 0.05)' }
-                },
-                x: {
-                    ticks: { color: '#94a3b8' },
-                    grid: { display: false }
-                }
-            }
-        }
     });
 }
 

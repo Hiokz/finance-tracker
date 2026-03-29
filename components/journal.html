@@ -1,0 +1,33 @@
+<section id="journal-section" class="content-section">
+     <div class="section-header">
+        <h2>Trading Journal</h2>
+        <button class="btn btn-primary" id="btn-add-trade">
+            <i class="fa-solid fa-plus"></i> Log Trade
+        </button>
+    </div>
+    
+    <div class="card table-card">
+        <div class="table-responsive">
+            <table class="data-table" id="trades-table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Asset</th>
+                        <th>Direction</th>
+                        <th>Entry</th>
+                        <th>Exit</th>
+                        <th>PnL</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="trades-list">
+                    <!-- Dynamic content -->
+                </tbody>
+            </table>
+            <div id="no-trades" class="empty-state">
+                <i class="fa-solid fa-chart-candlestick"></i>
+                <p>No trades logged yet</p>
+            </div>
+        </div>
+    </div>
+</section>

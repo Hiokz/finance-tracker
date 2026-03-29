@@ -664,6 +664,10 @@ function renderDayTrades() {
     elements.dayTradesPnl.textContent = formatCurrency(dayPnl);
     elements.dayTradesPnl.className = dayPnl >= 0 ? 'success-text' : 'danger-text';
 
+    if (elements.dayTradesCount) {
+        elements.dayTradesCount.textContent = filteredTrades.length;
+    }
+
     if (filteredTrades.length === 0) {
         elements.dayTradesList.innerHTML = `<tr><td colspan="7" style="text-align:center; padding: 2rem; color: var(--text-muted);">No trades logged on this date.</td></tr>`;
         return;

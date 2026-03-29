@@ -786,7 +786,7 @@ function renderTransactionsTable() {
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td>${formatDate(t.date)}</td>
-            <td><strong>${t.description}</strong></td>
+            <td><strong>${escapeHTML(t.description)}</strong></td>
             <td><span class="badge ${t.type}">${t.type}</span></td>
             <td class="${t.type === 'income' ? 'success-text' : 'danger-text'}">
                 ${t.type === 'income' ? '+' : '-'}${formatCurrency(t.amount)}
@@ -947,7 +947,7 @@ function renderDayTrades() {
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td>${formatDate(t.date)}</td>
-            <td><strong>${t.asset}</strong></td>
+            <td><strong>${escapeHTML(t.asset)}</strong></td>
             <td><span class="badge ${badgeClass}">${t.direction.toUpperCase()}</span></td>
             <td>$${Number(t.entry_price).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
             <td>$${Number(t.exit_price).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
@@ -980,7 +980,7 @@ function renderBacktestList() {
 
         const tr = document.createElement('tr');
         tr.innerHTML = `
-            <td><strong>${bs.name}</strong></td>
+            <td><strong>${escapeHTML(bs.name)}</strong></td>
             <td>${formatCurrency(initial)}</td>
             <td class="${current >= initial ? 'success-text' : 'danger-text'}">
                 <strong>${formatCurrency(current)}</strong>
@@ -1057,7 +1057,7 @@ function renderActiveBacktest() {
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td>${formatDate(t.date)}</td>
-            <td><strong>${t.asset}</strong></td>
+            <td><strong>${escapeHTML(t.asset)}</strong></td>
             <td><span class="badge ${t.direction}">${t.direction.toUpperCase()}</span></td>
             <td>$${Number(t.entry_price).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
             <td>$${Number(t.exit_price).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
@@ -1073,6 +1073,16 @@ function renderActiveBacktest() {
 }
 
 // Helpers
+function escapeHTML(str) {
+    if (!str) return '';
+    return str.toString()
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
 function formatCurrency(amount) {
     return new Intl.NumberFormat('en-US', {
         style: 'currency',

@@ -22,7 +22,6 @@ async function loadComponents() {
         { id: 'dashboard-placeholder', url: 'components/dashboard.html' },
         { id: 'transactions-placeholder', url: 'components/transactions.html' },
         { id: 'journal-placeholder', url: 'components/journal.html' },
-        { id: 'day-trades-placeholder', url: 'components/day-trades.html' },
         { id: 'modals-placeholder', url: 'components/modals.html' }
     ];
 
@@ -83,8 +82,8 @@ function initDOM() {
         calPrevBtn: document.getElementById('cal-prev-month'),
         calNextBtn: document.getElementById('cal-next-month'),
 
-        dayTradesSection: document.getElementById('day-trades-section'),
-        btnBackToJournal: document.getElementById('btn-back-to-journal'),
+        dayTradesModal: document.getElementById('day-trades-modal'),
+        closeDayTradesModal: document.getElementById('close-day-trades-modal'),
         dayTradesTitle: document.getElementById('day-trades-title'),
         dayTradesPnl: document.getElementById('day-trades-pnl'),
         dayTradesList: document.getElementById('day-trades-list'),
@@ -206,18 +205,12 @@ function setupEventListeners() {
         });
     }
 
-    if (elements.btnBackToJournal) {
-        elements.btnBackToJournal.addEventListener('click', () => {
-            window.selectedTradeDate = null;
-            elements.sections.forEach(s => s.classList.remove('active'));
-            document.getElementById('journal-section').classList.add('active');
-            elements.pageTitle.textContent = "Trading Journal";
-            renderPnlCalendar();
-        });
-    }
-
     if (elements.btnAddTradeDay) {
-        elements.btnAddTradeDay.addEventListener('click', () => openModal(elements.tradeModal));
+        elements.btnAddTradeDay.addEventListener('click', () => {
+            // Close day trades modal temporarily if open? Or overlay.
+            // Overlaying modals works natively via Z-index, which is handled in CSS/HTML setup.
+            openModal(elements.tradeModal);
+        });
     }
 
     // Toggle Buttons (Income/Expense, Long/Short)
@@ -234,14 +227,27 @@ function setupEventListeners() {
     });
 
     // Modals
-    elements.btnAddTransaction.addEventListener('click', () => openModal(elements.transactionModal));
-    elements.btnAddTrade.addEventListener('click', () => openModal(elements.tradeModal));
+    elements.btnAddTransaction.addEventListener('click', () => {
+        window.selectedTradeDate = null;
+        openModal(elements.transactionModal);
+    });
+    elements.btnAddTrade.addEventListener('click', () => {
+        window.selectedTradeDate = null;
+        openModal(elements.tradeModal);
+    });
     elements.closeTransactionModal.addEventListener('click', () => closeModal(elements.transactionModal));
     elements.closeTradeModal.addEventListener('click', () => closeModal(elements.tradeModal));
+    if (elements.closeDayTradesModal) {
+        elements.closeDayTradesModal.addEventListener('click', () => {
+            closeModal(elements.dayTradesModal);
+            window.selectedTradeDate = null;
+        });
+    }
 
     window.addEventListener('click', (e) => {
         if (e.target.classList.contains('modal-overlay')) {
             closeModal(e.target);
+            if (e.target.id === 'day-trades-modal') window.selectedTradeDate = null;
         }
     });
 
@@ -383,7 +389,7 @@ async function handleTradeSubmit(e) {
         state.trades.sort((a, b) => new Date(b.date) - new Date(a.date));
         closeModal(elements.tradeModal);
         renderAll();
-        if (window.selectedTradeDate && elements.dayTradesSection && elements.dayTradesSection.classList.contains('active')) {
+        if (window.selectedTradeDate && elements.dayTradesModal && elements.dayTradesModal.classList.contains('active')) {
             renderDayTrades();
         }
     } else {
@@ -399,8 +405,7 @@ window.deleteTrade = async function (id) {
     if (!error) {
         state.trades = state.trades.filter(t => t.id !== id);
         renderAll();
-        // Dynamic re-render if we are in Day Trades view deleting
-        if (window.selectedTradeDate && elements.dayTradesSection && elements.dayTradesSection.classList.contains('active')) {
+        if (window.selectedTradeDate && elements.dayTradesModal && elements.dayTradesModal.classList.contains('active')) {
             renderDayTrades();
         }
     }
@@ -603,14 +608,9 @@ function renderPnlCalendar() {
             const clickedDate = cellNode.dataset.date;
             window.selectedTradeDate = clickedDate;
 
-            // Navigate to Day Trades isolated view
-            elements.sections.forEach(s => s.classList.remove('active'));
-            elements.dayTradesSection.classList.add('active');
-
-            const d = new Date(clickedDate);
-            elements.pageTitle.textContent = `Trades: ${d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}`;
-
+            // Re-render and Open Modal
             renderDayTrades();
+            openModal(elements.dayTradesModal);
         });
     });
 }

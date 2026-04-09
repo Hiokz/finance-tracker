@@ -102,5 +102,23 @@ ALTER TABLE backtest_trades ENABLE ROW LEVEL SECURITY;
 -- Policies for backtest trades
 CREATE POLICY "Users can select their own backtest trades" ON backtest_trades FOR SELECT USING (auth.uid() = user_id);
 CREATE POLICY "Users can insert their own backtest trades" ON backtest_trades FOR INSERT WITH CHECK (auth.uid() = user_id);
-CREATE POLICY "Users can update their own backtest trades" ON backtest_trades FOR UPDATE USING (auth.uid() = user_id);
 CREATE POLICY "Users can delete their own backtest trades" ON backtest_trades FOR DELETE USING (auth.uid() = user_id);
+
+-- Create the NOTES table
+CREATE TABLE notes (
+    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+    title TEXT NOT NULL,
+    content TEXT,
+    color TEXT DEFAULT '#1a1f2c',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW())
+);
+
+-- Enable RLS for notes
+ALTER TABLE notes ENABLE ROW LEVEL SECURITY;
+
+-- Policies for notes
+CREATE POLICY "Users can select their own notes" ON notes FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users can insert their own notes" ON notes FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can update their own notes" ON notes FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "Users can delete their own notes" ON notes FOR DELETE USING (auth.uid() = user_id);

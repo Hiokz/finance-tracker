@@ -8,7 +8,8 @@ let state = {
     transactions: [],
     trades: [],
     backtests: [],
-    backtestTrades: []
+    backtestTrades: [],
+    notes: []
 };
 let currentUser = null;
 let currentCalDate = new Date();
@@ -25,6 +26,7 @@ async function loadComponents() {
         { id: 'transactions-placeholder', url: 'components/transactions.html' },
         { id: 'journal-placeholder', url: 'components/journal.html' },
         { id: 'backtesting-placeholder', url: 'components/backtesting.html' },
+        { id: 'notes-placeholder', url: 'components/notes.html' },
         { id: 'modals-placeholder', url: 'components/modals.html' }
     ];
 
@@ -115,7 +117,20 @@ function initDOM() {
         btNetPnl: document.getElementById('bt-net-pnl'),
         btWinRate: document.getElementById('bt-win-rate'),
         btTotalTrades: document.getElementById('bt-total-trades'),
-        btSectionHeading: document.getElementById('bt-section-heading')
+        btSectionHeading: document.getElementById('bt-section-heading'),
+
+        // Notes DOM
+        noteModal: document.getElementById('note-modal'),
+        closeNoteModal: document.getElementById('close-note-modal'),
+        btnNewNote: document.getElementById('btn-new-note'),
+        noteForm: document.getElementById('note-form'),
+        notesGrid: document.getElementById('notes-grid'),
+        noteModalTitle: document.getElementById('note-modal-title'),
+        noteIdInput: document.getElementById('note-id'),
+        noteColorInput: document.getElementById('note-color'),
+        noteTitleInput: document.getElementById('note-title'),
+        noteContentInput: document.getElementById('note-content'),
+        colorSwatches: document.querySelectorAll('.color-swatch')
     };
 }
 
@@ -417,6 +432,40 @@ function setupEventListeners() {
     if (elements.backtestTradeForm) {
         elements.backtestTradeForm.addEventListener('submit', handleBacktestTradeSubmit);
     }
+
+    // Notes Event Listeners
+    if (elements.btnNewNote) {
+        elements.btnNewNote.addEventListener('click', () => {
+            elements.noteModalTitle.textContent = 'Take a note';
+            elements.noteIdInput.value = '';
+            elements.noteTitleInput.value = '';
+            elements.noteContentInput.value = '';
+
+            // Reset color to default #1e222d
+            elements.noteColorInput.value = '#1e222d';
+            elements.colorSwatches.forEach(s => s.classList.remove('active'));
+            if (elements.colorSwatches.length > 0) elements.colorSwatches[0].classList.add('active'); // First one is default
+
+            openModal(elements.noteModal);
+        });
+    }
+    if (elements.closeNoteModal) {
+        elements.closeNoteModal.addEventListener('click', () => closeModal(elements.noteModal));
+    }
+    if (elements.noteForm) {
+        elements.noteForm.addEventListener('submit', handleNoteSubmit);
+    }
+
+    // Color Picker Swatches
+    if (elements.colorSwatches) {
+        elements.colorSwatches.forEach(swatch => {
+            swatch.addEventListener('click', () => {
+                elements.colorSwatches.forEach(s => s.classList.remove('active'));
+                swatch.classList.add('active');
+                elements.noteColorInput.value = swatch.dataset.color || '#1e222d';
+            });
+        });
+    }
 }
 
 function updateDateDisplay() {
@@ -500,6 +549,15 @@ async function loadData() {
 
     if (!btError && btData) {
         state.backtestTrades = btData;
+    }
+
+    const { data: notesData, error: notesError } = await supabaseClient
+        .from('notes')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+    if (!notesError && notesData) {
+        state.notes = notesData;
     }
 
     renderAll();
@@ -734,6 +792,7 @@ function renderAll() {
     renderDashboard();
     renderTransactionsTable();
     renderPnlCalendar();
+    renderNotes();
 
     if (window.selectedBacktestId) {
         renderActiveBacktest();
@@ -1068,6 +1127,103 @@ function renderActiveBacktest() {
         `;
         elements.backtestTradesList.appendChild(tr);
     });
+}
+
+// Notes logic
+window.editNote = function (id) {
+    const note = state.notes.find(n => n.id === id);
+    if (!note) return;
+
+    elements.noteModalTitle.textContent = 'Edit note';
+    elements.noteIdInput.value = note.id;
+    elements.noteTitleInput.value = note.title;
+    elements.noteContentInput.value = note.content || '';
+    elements.noteColorInput.value = note.color;
+
+    elements.colorSwatches.forEach(s => {
+        if (s.dataset.color === note.color) s.classList.add('active');
+        else s.classList.remove('active');
+    });
+
+    openModal(elements.noteModal);
+};
+
+window.deleteNote = async function (id, event) {
+    if (event) event.stopPropagation(); // prevent opening edit modal
+    const { error } = await supabaseClient.from('notes').delete().eq('id', id);
+    if (!error) {
+        state.notes = state.notes.filter(n => n.id !== id);
+        renderNotes();
+    }
+};
+
+async function handleNoteSubmit(e) {
+    e.preventDefault();
+    if (!currentUser) return;
+
+    const btn = elements.noteForm.querySelector('button[type="submit"]');
+    btn.disabled = true;
+
+    const id = elements.noteIdInput.value;
+    const title = elements.noteTitleInput.value;
+    const content = elements.noteContentInput.value;
+    const color = elements.noteColorInput.value;
+
+    if (id) {
+        // Update
+        const { data, error } = await supabaseClient
+            .from('notes')
+            .update({ title, content, color })
+            .eq('id', id)
+            .select();
+
+        if (!error && data) {
+            const idx = state.notes.findIndex(n => n.id === id);
+            if (idx !== -1) state.notes[idx] = data[0];
+            closeModal(elements.noteModal);
+            renderNotes();
+        } else {
+            console.error("Error updating note:", error);
+            alert("Failed to update note.");
+        }
+    } else {
+        // Insert
+        const { data, error } = await supabaseClient
+            .from('notes')
+            .insert([{ user_id: currentUser.id, title, content, color }])
+            .select();
+
+        if (!error && data) {
+            state.notes.unshift(data[0]);
+            closeModal(elements.noteModal);
+            renderNotes();
+        } else {
+            console.error("Error saving note:", error);
+            alert("Failed to save note.");
+        }
+    }
+
+    btn.disabled = false;
+}
+
+function renderNotes() {
+    if (!elements.notesGrid) return;
+
+    if (state.notes.length === 0) {
+        elements.notesGrid.innerHTML = '<div style="color: var(--text-muted); padding: 20px; grid-column: 1/-1;">No notes yet. Add one!</div>';
+        return;
+    }
+
+    elements.notesGrid.innerHTML = state.notes.map(note => `
+        <div class="note-card" style="background-color: ${note.color};" onclick="editNote('${note.id}')">
+            <button class="note-delete-btn" onclick="deleteNote('${note.id}', event)" title="Delete Note">
+                <i class="fa-solid fa-trash"></i>
+            </button>
+            <h4>${escapeHTML(note.title)}</h4>
+            <p>${escapeHTML(note.content)}</p>
+            <span class="note-date">${formatDate(note.created_at)}</span>
+        </div>
+    `).join('');
 }
 
 // Helpers

@@ -257,4 +257,44 @@
             </div>
         </div>
     </div>
+
+    <!-- Note Modal -->
+    <div class="modal-overlay" id="note-modal">
+        <div class="modal glass-panel">
+            <div class="modal-header">
+                <h2 id="note-modal-title">Take a note</h2>
+                <button class="btn-close" id="close-note-modal"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="modal-body">
+                <form id="note-form">
+                    <input type="hidden" id="note-id" value="">
+                    <input type="hidden" id="note-color" value="#1e222d">
+
+                    <div class="form-group">
+                        <input type="text" id="note-title" required placeholder="Title"
+                            style="font-weight: 600; font-size: 1.1rem; border: none; background: transparent; padding: 0; margin-bottom: 15px; box-shadow: none;">
+                    </div>
+                    <div class="form-group">
+                        <textarea id="note-content" rows="6" placeholder="Take a note..."
+                            style="border: none; background: transparent; padding: 0; box-shadow: none; resize: vertical;"></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <div class="color-picker-row">
+                            <div class="color-swatch active" data-color="#1e222d" style="background-color: #1e222d;">
+                            </div>
+                            <div class="color-swatch" data-color="#552c2c" style="background-color: #552c2c;"></div>
+                            <div class="color-swatch" data-color="#49442a" style="background-color: #49442a;"></div>
+                            <div class="color-swatch" data-color="#2c4233" style="background-color: #2c4233;"></div>
+                            <div class="color-swatch" data-color="#2d3f4f" style="background-color: #2d3f4f;"></div>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 15px;">
+                        <button type="submit" class="btn btn-primary">Save</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 </div>

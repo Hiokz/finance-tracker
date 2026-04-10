@@ -1477,3 +1477,10 @@ function formatDate(dateString) {
 
 // Run app
 init();
+
+// Auto-refresh Stock Portfolio every 1 hour (3600000 ms)
+setInterval(() => {
+    if (state.portfolio && state.portfolio.length > 0) {
+        renderPortfolio();
+    }
+}, 3600000);

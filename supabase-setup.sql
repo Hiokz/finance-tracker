@@ -122,3 +122,23 @@ CREATE POLICY "Users can select their own notes" ON notes FOR SELECT USING (auth
 CREATE POLICY "Users can insert their own notes" ON notes FOR INSERT WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "Users can update their own notes" ON notes FOR UPDATE USING (auth.uid() = user_id);
 CREATE POLICY "Users can delete their own notes" ON notes FOR DELETE USING (auth.uid() = user_id);
+
+-- Create the PORTFOLIO table
+CREATE TABLE portfolio (
+    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+    ticker TEXT NOT NULL,
+    shares NUMERIC(15, 5) NOT NULL,
+    avg_price NUMERIC(15, 5) NOT NULL,
+    current_price NUMERIC(15, 5) DEFAULT 0,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW())
+);
+
+-- Enable RLS for portfolio
+ALTER TABLE portfolio ENABLE ROW LEVEL SECURITY;
+
+-- Policies for portfolio
+CREATE POLICY "Users can select their own portfolio" ON portfolio FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users can insert their own portfolio" ON portfolio FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can update their own portfolio" ON portfolio FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "Users can delete their own portfolio" ON portfolio FOR DELETE USING (auth.uid() = user_id);

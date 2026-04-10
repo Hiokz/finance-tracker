@@ -9,7 +9,8 @@ let state = {
     trades: [],
     backtests: [],
     backtestTrades: [],
-    notes: []
+    notes: [],
+    portfolio: []
 };
 let currentUser = null;
 let currentCalDate = new Date();
@@ -26,6 +27,7 @@ async function loadComponents() {
         { id: 'transactions-placeholder', url: 'components/transactions.html' },
         { id: 'journal-placeholder', url: 'components/journal.html' },
         { id: 'backtesting-placeholder', url: 'components/backtesting.html' },
+        { id: 'portfolio-placeholder', url: 'components/portfolio.html' },
         { id: 'notes-placeholder', url: 'components/notes.html' },
         { id: 'modals-placeholder', url: 'components/modals.html' }
     ];
@@ -130,7 +132,25 @@ function initDOM() {
         noteColorInput: document.getElementById('note-color'),
         noteTitleInput: document.getElementById('note-title'),
         noteContentInput: document.getElementById('note-content'),
-        colorSwatches: document.querySelectorAll('.color-swatch')
+        colorSwatches: document.querySelectorAll('.color-swatch'),
+
+        // Portfolio DOM
+        portfolioModal: document.getElementById('portfolio-modal'),
+        closePortfolioModal: document.getElementById('close-portfolio-modal'),
+        btnAddPortfolio: document.getElementById('btn-add-portfolio'),
+        portfolioForm: document.getElementById('portfolio-form'),
+        portfolioIdInput: document.getElementById('portfolio-id'),
+        pfTickerInput: document.getElementById('pf-ticker'),
+        pfSharesInput: document.getElementById('pf-shares'),
+        pfAvgPriceInput: document.getElementById('pf-avg-price'),
+        pfCurrentPriceInput: document.getElementById('pf-current-price'),
+        portfolioModalTitle: document.getElementById('portfolio-modal-title'),
+        portfolioTotalValue: document.getElementById('portfolio-total-value'),
+        portfolioTotalCost: document.getElementById('portfolio-total-cost'),
+        portfolioUnrealizedPnl: document.getElementById('portfolio-unrealized-pnl'),
+        portfolioRoiTrend: document.getElementById('portfolio-roi-trend'),
+        portfolioRoi: document.getElementById('portfolio-roi'),
+        portfolioTableBody: document.getElementById('portfolio-table-body')
     };
 }
 
@@ -466,6 +486,22 @@ function setupEventListeners() {
             });
         });
     }
+
+    // Portfolio Event Listeners
+    if (elements.btnAddPortfolio) {
+        elements.btnAddPortfolio.addEventListener('click', () => {
+            elements.portfolioModalTitle.textContent = 'Add Asset';
+            elements.portfolioIdInput.value = '';
+            elements.portfolioForm.reset();
+            openModal(elements.portfolioModal);
+        });
+    }
+    if (elements.closePortfolioModal) {
+        elements.closePortfolioModal.addEventListener('click', () => closeModal(elements.portfolioModal));
+    }
+    if (elements.portfolioForm) {
+        elements.portfolioForm.addEventListener('submit', handlePortfolioSubmit);
+    }
 }
 
 function updateDateDisplay() {
@@ -558,6 +594,15 @@ async function loadData() {
 
     if (!notesError && notesData) {
         state.notes = notesData;
+    }
+
+    const { data: pfData, error: pfError } = await supabaseClient
+        .from('portfolio')
+        .select('*')
+        .order('ticker', { ascending: true });
+
+    if (!pfError && pfData) {
+        state.portfolio = pfData;
     }
 
     renderAll();
@@ -793,6 +838,7 @@ function renderAll() {
     renderTransactionsTable();
     renderPnlCalendar();
     renderNotes();
+    renderPortfolio();
 
     if (window.selectedBacktestId) {
         renderActiveBacktest();
@@ -1224,6 +1270,152 @@ function renderNotes() {
             <span class="note-date">${formatDate(note.created_at)}</span>
         </div>
     `).join('');
+}
+
+// Portfolio logic
+window.editPortfolio = function (id) {
+    const asset = state.portfolio.find(p => p.id === id);
+    if (!asset) return;
+
+    elements.portfolioModalTitle.textContent = 'Edit Asset';
+    elements.portfolioIdInput.value = asset.id;
+    elements.pfTickerInput.value = asset.ticker;
+    elements.pfSharesInput.value = asset.shares;
+    elements.pfAvgPriceInput.value = asset.avg_price;
+    elements.pfCurrentPriceInput.value = asset.current_price;
+
+    openModal(elements.portfolioModal);
+};
+
+window.deletePortfolio = async function (id) {
+    const { error } = await supabaseClient.from('portfolio').delete().eq('id', id);
+    if (!error) {
+        state.portfolio = state.portfolio.filter(p => p.id !== id);
+        renderPortfolio();
+    }
+};
+
+async function handlePortfolioSubmit(e) {
+    e.preventDefault();
+    if (!currentUser) return;
+
+    const btn = elements.portfolioForm.querySelector('button[type="submit"]');
+    btn.disabled = true;
+
+    const id = elements.portfolioIdInput.value;
+    const ticker = elements.pfTickerInput.value.toUpperCase();
+    const shares = parseFloat(elements.pfSharesInput.value);
+    const avg_price = parseFloat(elements.pfAvgPriceInput.value);
+    const current_price = parseFloat(elements.pfCurrentPriceInput.value) || 0;
+
+    const payload = { ticker, shares, avg_price, current_price };
+
+    if (id) {
+        // Update
+        const { data, error } = await supabaseClient
+            .from('portfolio')
+            .update(payload)
+            .eq('id', id)
+            .select();
+
+        if (!error && data) {
+            const idx = state.portfolio.findIndex(p => p.id === id);
+            if (idx !== -1) state.portfolio[idx] = data[0];
+            closeModal(elements.portfolioModal);
+            renderPortfolio();
+        } else {
+            console.error("Error updating portfolio:", error);
+            alert("Failed to update asset.");
+        }
+    } else {
+        // Insert
+        payload.user_id = currentUser.id;
+        const { data, error } = await supabaseClient
+            .from('portfolio')
+            .insert([payload])
+            .select();
+
+        if (!error && data) {
+            state.portfolio.push(data[0]);
+            // sort by ticker
+            state.portfolio.sort((a, b) => a.ticker.localeCompare(b.ticker));
+            closeModal(elements.portfolioModal);
+            renderPortfolio();
+        } else {
+            console.error("Error saving portfolio:", error);
+            alert("Failed to save asset.");
+        }
+    }
+
+    btn.disabled = false;
+}
+
+function renderPortfolio() {
+    if (!elements.portfolioTableBody) return;
+
+    let totalValue = 0;
+    let totalCost = 0;
+
+    elements.portfolioTableBody.innerHTML = '';
+
+    if (state.portfolio.length === 0) {
+        elements.portfolioTableBody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding: 2rem; color: var(--text-muted);">No assets found. Add an asset to start tracking!</td></tr>';
+
+        elements.portfolioTotalValue.textContent = formatCurrency(0);
+        elements.portfolioTotalCost.textContent = formatCurrency(0);
+        elements.portfolioUnrealizedPnl.textContent = formatCurrency(0);
+        elements.portfolioUnrealizedPnl.className = '';
+        elements.portfolioRoi.textContent = '0.00%';
+        elements.portfolioRoiTrend.className = 'trend';
+        return;
+    }
+
+    state.portfolio.forEach(asset => {
+        const s = Number(asset.shares);
+        const avg = Number(asset.avg_price);
+        const curr = Number(asset.current_price);
+
+        const costBasis = s * avg;
+        const mktValue = s * curr;
+        const pnl = mktValue - costBasis;
+
+        totalCost += costBasis;
+        totalValue += mktValue;
+
+        const pnlClass = pnl >= 0 ? 'success-text' : 'danger-text';
+        const pnlPrefix = pnl >= 0 ? '+' : '';
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td><strong>${escapeHTML(asset.ticker)}</strong></td>
+            <td>${s.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 5 })}</td>
+            <td>${formatCurrency(avg)}</td>
+            <td>${formatCurrency(curr)}</td>
+            <td>${formatCurrency(mktValue)}</td>
+            <td class="${pnlClass}">${pnlPrefix}${formatCurrency(pnl)}</td>
+            <td>
+                <button class="action-btn" onclick="editPortfolio('${asset.id}')" title="Edit">
+                    <i class="fa-solid fa-pen"></i>
+                </button>
+                <button class="action-btn delete" onclick="deletePortfolio('${asset.id}')" title="Delete">
+                    <i class="fa-solid fa-trash"></i>
+                </button>
+            </td>
+        `;
+        elements.portfolioTableBody.appendChild(tr);
+    });
+
+    const totalPnl = totalValue - totalCost;
+    const roi = totalCost > 0 ? (totalPnl / totalCost) * 100 : 0;
+
+    elements.portfolioTotalValue.textContent = formatCurrency(totalValue);
+    elements.portfolioTotalCost.textContent = formatCurrency(totalCost);
+
+    elements.portfolioUnrealizedPnl.textContent = formatCurrency(totalPnl);
+    elements.portfolioUnrealizedPnl.className = totalPnl >= 0 ? 'success-text' : 'danger-text';
+
+    elements.portfolioRoi.textContent = `${totalPnl >= 0 ? '+' : ''}${roi.toFixed(2)}%`;
+    elements.portfolioRoiTrend.className = `trend ${totalPnl >= 0 ? 'positive' : 'negative'}`;
 }
 
 // Helpers

@@ -297,4 +297,46 @@
             </div>
         </div>
     </div>
+
+    <!-- Portfolio Asset Modal -->
+    <div class="modal-overlay" id="portfolio-modal">
+        <div class="modal glass-panel">
+            <div class="modal-header">
+                <h2 id="portfolio-modal-title">Add Asset</h2>
+                <button class="btn-close" id="close-portfolio-modal"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="modal-body">
+                <form id="portfolio-form">
+                    <input type="hidden" id="portfolio-id" value="">
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="pf-ticker">Ticker Symbol</label>
+                            <input type="text" id="pf-ticker" required placeholder="e.g. AAPL, NVDA"
+                                style="text-transform: uppercase;">
+                        </div>
+                        <div class="form-group">
+                            <label for="pf-shares">Number of Shares</label>
+                            <input type="number" id="pf-shares" step="0.00001" min="0" required placeholder="10">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="pf-avg-price">Average Buy Price ($)</label>
+                            <input type="number" id="pf-avg-price" step="0.01" min="0" required placeholder="150.00">
+                        </div>
+                        <div class="form-group">
+                            <label for="pf-current-price">Current Price ($)</label>
+                            <input type="number" id="pf-current-price" step="0.01" min="0" required
+                                placeholder="155.00">
+                        </div>
+                    </div>
+
+                    <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 15px;">
+                        <button type="submit" class="btn btn-primary btn-block">Save Portfolio</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 </div>

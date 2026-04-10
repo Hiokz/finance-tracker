@@ -1,0 +1,62 @@
+<section id="portfolio-section" class="content-section">
+    <div class="header-actions"
+        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+        <h2>Stock Portfolio</h2>
+        <button class="btn btn-primary" id="btn-add-portfolio">
+            <i class="fa-solid fa-plus"></i> Add Asset
+        </button>
+    </div>
+
+    <!-- Stats Grid -->
+    <div class="dashboard-grid" style="grid-template-columns: repeat(3, 1fr); margin-bottom: 24px;">
+        <div class="card stat-card gradient-border" style="grid-column: span 1;">
+            <div class="card-header">
+                <h3>Total Value</h3>
+                <i class="fa-solid fa-wallet card-icon"></i>
+            </div>
+            <div class="card-body">
+                <h2 id="portfolio-total-value">$0.00</h2>
+            </div>
+        </div>
+        <div class="card stat-card income" style="grid-column: span 1;">
+            <div class="card-header">
+                <h3>Total Cost Basis</h3>
+                <i class="fa-solid fa-piggy-bank card-icon text-muted"></i>
+            </div>
+            <div class="card-body">
+                <h2 id="portfolio-total-cost" class="text-muted">$0.00</h2>
+            </div>
+        </div>
+        <div class="card stat-card trading-stats" style="grid-column: span 1;">
+            <div class="card-header">
+                <h3>Unrealized P&L</h3>
+                <i class="fa-solid fa-chart-line card-icon"></i>
+            </div>
+            <div class="card-body">
+                <h2 id="portfolio-unrealized-pnl">$0.00</h2>
+                <div class="trend" id="portfolio-roi-trend" style="margin-top: 8px;">
+                    <span id="portfolio-roi">0.00%</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card table-container">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Ticker</th>
+                    <th>Shares</th>
+                    <th>Avg Price</th>
+                    <th>Current Price</th>
+                    <th>Market Value</th>
+                    <th>P&L</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="portfolio-table-body">
+                <!-- Data populated by JS -->
+            </tbody>
+        </table>
+    </div>
+</section>

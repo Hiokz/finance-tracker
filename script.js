@@ -318,8 +318,11 @@ function setupEventListeners() {
     // Navigation
     elements.navItems.forEach(item => {
         item.addEventListener('click', (e) => {
-            e.preventDefault();
+            if (e && e.preventDefault) e.preventDefault();
             const targetId = item.getAttribute('data-target');
+
+            // Sync with browser URL for refresh persistence
+            window.location.hash = targetId;
 
             elements.navItems.forEach(nav => nav.classList.remove('active'));
             item.classList.add('active');
@@ -501,6 +504,13 @@ function setupEventListeners() {
     }
     if (elements.portfolioForm) {
         elements.portfolioForm.addEventListener('submit', handlePortfolioSubmit);
+    }
+
+    // Restore routing from URL hash on load
+    if (window.location.hash) {
+        const hash = window.location.hash.substring(1);
+        const activeNav = Array.from(elements.navItems).find(n => n.getAttribute('data-target') === hash);
+        if (activeNav) activeNav.click();
     }
 }
 

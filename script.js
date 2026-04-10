@@ -1348,29 +1348,21 @@ async function handlePortfolioSubmit(e) {
     btn.disabled = false;
 }
 
-// Finnhub configuration
-function getFinnhubKey() {
-    let key = localStorage.getItem('finnhub_api_key');
-    if (!key) {
-        key = prompt("Please enter your free Finnhub API Key to fetch live stock prices:\n(You can get one at finnhub.io)\nIf you leave this blank, live prices will be evaluated at $0.");
-        if (key) {
-            localStorage.setItem('finnhub_api_key', key);
-        }
-    }
-    return key || '';
-}
-
+// Live API configuration using Supabase Edge Function connecting to Yahoo Finance
 async function fetchLivePrice(ticker) {
-    const key = getFinnhubKey();
-    if (!key) return 0;
     try {
-        const res = await fetch(`https://finnhub.io/api/v1/quote?symbol=${ticker}&token=${key}`);
-        if (res.ok) {
-            const data = await res.json();
-            return data.c || 0;
+        const { data, error } = await supabaseClient.functions.invoke('yahoo-finance', {
+            body: { ticker: ticker }
+        });
+
+        if (error) {
+            console.error("Edge function error:", error);
+            return 0;
         }
+
+        return data?.price || 0;
     } catch (e) {
-        console.error("Failed to fetch price for", ticker, e);
+        console.error("Failed to invoke Edge Function for", ticker, e);
     }
     return 0;
 }

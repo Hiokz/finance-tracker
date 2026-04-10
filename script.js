@@ -874,9 +874,9 @@ function renderDashboard() {
         ? ((winningTrades / state.trades.length) * 100).toFixed(1)
         : 0;
 
-    elements.dashTotalBalance.textContent = isBalanceHidden ? '****' : formatCurrency(balance);
-    elements.dashTotalIncome.textContent = `+${formatCurrency(income)}`;
-    elements.dashTotalExpense.textContent = `-${formatCurrency(expense)}`;
+    elements.dashTotalBalance.textContent = isBalanceHidden ? '****' : formatCurrencySGD(balance);
+    elements.dashTotalIncome.textContent = `+${formatCurrencySGD(income)}`;
+    elements.dashTotalExpense.textContent = `-${formatCurrencySGD(expense)}`;
 
     elements.dashTradingPnl.textContent = formatCurrency(totalPnl);
     elements.dashTradingPnl.className = totalPnl >= 0 ? 'success-text' : 'danger-text';
@@ -1406,6 +1406,7 @@ async function renderPortfolio() {
         elements.portfolioTableBody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 2rem; color: var(--text-muted);">No assets found. Add an asset to start tracking!</td></tr>';
 
         elements.portfolioTotalValue.textContent = formatCurrency(0);
+        if (document.getElementById('portfolio-total-value-sgd')) document.getElementById('portfolio-total-value-sgd').textContent = formatCurrencySGD(0) + ' SGD';
         if (document.getElementById('portfolio-active-positions')) document.getElementById('portfolio-active-positions').textContent = '0';
         if (document.getElementById('portfolio-top-asset')) document.getElementById('portfolio-top-asset').textContent = '-';
         return;
@@ -1415,9 +1416,12 @@ async function renderPortfolio() {
     let totalShares = 0;
     let html = '';
 
-    // Fetch all prices in parallel
+    // Fetch all prices in parallel (Append FX Request implicitly)
     const pricePromises = state.portfolio.map(asset => fetchLivePrice(asset.ticker));
+    pricePromises.push(fetchLivePrice('SGD=X'));
+
     const livePrices = await Promise.all(pricePromises);
+    const sgdRate = livePrices.pop() || 1.35; // Default fallback to 1.35 if heavily rate limited
 
     state.portfolio.forEach((asset, index) => {
         const s = Number(asset.shares);
@@ -1448,6 +1452,10 @@ async function renderPortfolio() {
     elements.portfolioTableBody.innerHTML = html;
 
     elements.portfolioTotalValue.textContent = formatCurrency(totalValue);
+    if (document.getElementById('portfolio-total-value-sgd')) {
+        document.getElementById('portfolio-total-value-sgd').textContent = formatCurrencySGD(totalValue * sgdRate) + ' SGD';
+    }
+
     if (document.getElementById('portfolio-active-positions')) document.getElementById('portfolio-active-positions').textContent = state.portfolio.length;
     if (document.getElementById('portfolio-top-asset')) document.getElementById('portfolio-top-asset').textContent = totalShares.toLocaleString(undefined, { maximumFractionDigits: 5 });
 }
@@ -1467,6 +1475,13 @@ function formatCurrency(amount) {
     return new Intl.NumberFormat('en-US', {
         style: 'currency',
         currency: 'USD'
+    }).format(amount);
+}
+
+function formatCurrencySGD(amount) {
+    return new Intl.NumberFormat('en-SG', {
+        style: 'currency',
+        currency: 'SGD'
     }).format(amount);
 }
 

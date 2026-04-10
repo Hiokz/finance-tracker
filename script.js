@@ -1412,8 +1412,8 @@ async function renderPortfolio() {
     }
 
     let totalValue = 0;
+    let totalShares = 0;
     let html = '';
-    let topAsset = { ticker: '-', value: 0 };
 
     // Fetch all prices in parallel
     const pricePromises = state.portfolio.map(asset => fetchLivePrice(asset.ticker));
@@ -1425,9 +1425,7 @@ async function renderPortfolio() {
         const mktValue = s * curr;
 
         totalValue += mktValue;
-        if (mktValue > topAsset.value) {
-            topAsset = { ticker: asset.ticker, value: mktValue };
-        }
+        totalShares += s;
 
         html += `
             <tr>
@@ -1451,7 +1449,7 @@ async function renderPortfolio() {
 
     elements.portfolioTotalValue.textContent = formatCurrency(totalValue);
     if (document.getElementById('portfolio-active-positions')) document.getElementById('portfolio-active-positions').textContent = state.portfolio.length;
-    if (document.getElementById('portfolio-top-asset')) document.getElementById('portfolio-top-asset').textContent = topAsset.ticker;
+    if (document.getElementById('portfolio-top-asset')) document.getElementById('portfolio-top-asset').textContent = totalShares.toLocaleString(undefined, { maximumFractionDigits: 5 });
 }
 
 // Helpers

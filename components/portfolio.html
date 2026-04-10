@@ -11,7 +11,7 @@
     <div class="dashboard-grid" style="grid-template-columns: repeat(3, 1fr); margin-bottom: 24px;">
         <div class="card stat-card gradient-border" style="grid-column: span 1;">
             <div class="card-header">
-                <h3>Total Value</h3>
+                <h3>Total Market Value</h3>
                 <i class="fa-solid fa-wallet card-icon"></i>
             </div>
             <div class="card-body">
@@ -20,23 +20,20 @@
         </div>
         <div class="card stat-card income" style="grid-column: span 1;">
             <div class="card-header">
-                <h3>Total Cost Basis</h3>
-                <i class="fa-solid fa-piggy-bank card-icon text-muted"></i>
+                <h3>Active Positions</h3>
+                <i class="fa-solid fa-briefcase card-icon text-muted"></i>
             </div>
             <div class="card-body">
-                <h2 id="portfolio-total-cost" class="text-muted">$0.00</h2>
+                <h2 id="portfolio-active-positions" class="text-main">0</h2>
             </div>
         </div>
         <div class="card stat-card trading-stats" style="grid-column: span 1;">
             <div class="card-header">
-                <h3>Unrealized P&L</h3>
-                <i class="fa-solid fa-chart-line card-icon"></i>
+                <h3>Top Asset</h3>
+                <i class="fa-solid fa-crown card-icon"></i>
             </div>
             <div class="card-body">
-                <h2 id="portfolio-unrealized-pnl">$0.00</h2>
-                <div class="trend" id="portfolio-roi-trend" style="margin-top: 8px;">
-                    <span id="portfolio-roi">0.00%</span>
-                </div>
+                <h2 id="portfolio-top-asset" class="primary-text">-</h2>
             </div>
         </div>
     </div>
@@ -47,10 +44,8 @@
                 <tr>
                     <th>Ticker</th>
                     <th>Shares</th>
-                    <th>Avg Price</th>
-                    <th>Current Price</th>
+                    <th>Live Price</th>
                     <th>Market Value</th>
-                    <th>P&L</th>
                     <th>Actions</th>
                 </tr>
             </thead>

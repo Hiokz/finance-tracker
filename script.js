@@ -1281,8 +1281,6 @@ window.editPortfolio = function (id) {
     elements.portfolioIdInput.value = asset.id;
     elements.pfTickerInput.value = asset.ticker;
     elements.pfSharesInput.value = asset.shares;
-    elements.pfAvgPriceInput.value = asset.avg_price;
-    elements.pfCurrentPriceInput.value = asset.current_price;
 
     openModal(elements.portfolioModal);
 };
@@ -1305,8 +1303,8 @@ async function handlePortfolioSubmit(e) {
     const id = elements.portfolioIdInput.value;
     const ticker = elements.pfTickerInput.value.toUpperCase();
     const shares = parseFloat(elements.pfSharesInput.value);
-    const avg_price = parseFloat(elements.pfAvgPriceInput.value);
-    const current_price = parseFloat(elements.pfCurrentPriceInput.value) || 0;
+    const avg_price = 0;
+    const current_price = 0;
 
     const payload = { ticker, shares, avg_price, current_price };
 
@@ -1350,72 +1348,88 @@ async function handlePortfolioSubmit(e) {
     btn.disabled = false;
 }
 
-function renderPortfolio() {
+// Finnhub configuration
+function getFinnhubKey() {
+    let key = localStorage.getItem('finnhub_api_key');
+    if (!key) {
+        key = prompt("Please enter your free Finnhub API Key to fetch live stock prices:\n(You can get one at finnhub.io)\nIf you leave this blank, live prices will be evaluated at $0.");
+        if (key) {
+            localStorage.setItem('finnhub_api_key', key);
+        }
+    }
+    return key || '';
+}
+
+async function fetchLivePrice(ticker) {
+    const key = getFinnhubKey();
+    if (!key) return 0;
+    try {
+        const res = await fetch(`https://finnhub.io/api/v1/quote?symbol=${ticker}&token=${key}`);
+        if (res.ok) {
+            const data = await res.json();
+            return data.c || 0;
+        }
+    } catch (e) {
+        console.error("Failed to fetch price for", ticker, e);
+    }
+    return 0;
+}
+
+async function renderPortfolio() {
     if (!elements.portfolioTableBody) return;
 
-    let totalValue = 0;
-    let totalCost = 0;
-
-    elements.portfolioTableBody.innerHTML = '';
+    elements.portfolioTableBody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 2rem; color: var(--text-muted);">Loading live prices... <i class="fa-solid fa-spinner fa-spin"></i></td></tr>';
 
     if (state.portfolio.length === 0) {
-        elements.portfolioTableBody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding: 2rem; color: var(--text-muted);">No assets found. Add an asset to start tracking!</td></tr>';
+        elements.portfolioTableBody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 2rem; color: var(--text-muted);">No assets found. Add an asset to start tracking!</td></tr>';
 
         elements.portfolioTotalValue.textContent = formatCurrency(0);
-        elements.portfolioTotalCost.textContent = formatCurrency(0);
-        elements.portfolioUnrealizedPnl.textContent = formatCurrency(0);
-        elements.portfolioUnrealizedPnl.className = '';
-        elements.portfolioRoi.textContent = '0.00%';
-        elements.portfolioRoiTrend.className = 'trend';
+        if (document.getElementById('portfolio-active-positions')) document.getElementById('portfolio-active-positions').textContent = '0';
+        if (document.getElementById('portfolio-top-asset')) document.getElementById('portfolio-top-asset').textContent = '-';
         return;
     }
 
-    state.portfolio.forEach(asset => {
+    let totalValue = 0;
+    let html = '';
+    let topAsset = { ticker: '-', value: 0 };
+
+    // Fetch all prices in parallel
+    const pricePromises = state.portfolio.map(asset => fetchLivePrice(asset.ticker));
+    const livePrices = await Promise.all(pricePromises);
+
+    state.portfolio.forEach((asset, index) => {
         const s = Number(asset.shares);
-        const avg = Number(asset.avg_price);
-        const curr = Number(asset.current_price);
-
-        const costBasis = s * avg;
+        const curr = livePrices[index];
         const mktValue = s * curr;
-        const pnl = mktValue - costBasis;
 
-        totalCost += costBasis;
         totalValue += mktValue;
+        if (mktValue > topAsset.value) {
+            topAsset = { ticker: asset.ticker, value: mktValue };
+        }
 
-        const pnlClass = pnl >= 0 ? 'success-text' : 'danger-text';
-        const pnlPrefix = pnl >= 0 ? '+' : '';
-
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-            <td><strong>${escapeHTML(asset.ticker)}</strong></td>
-            <td>${s.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 5 })}</td>
-            <td>${formatCurrency(avg)}</td>
-            <td>${formatCurrency(curr)}</td>
-            <td>${formatCurrency(mktValue)}</td>
-            <td class="${pnlClass}">${pnlPrefix}${formatCurrency(pnl)}</td>
-            <td>
-                <button class="action-btn" onclick="editPortfolio('${asset.id}')" title="Edit">
-                    <i class="fa-solid fa-pen"></i>
-                </button>
-                <button class="action-btn delete" onclick="deletePortfolio('${asset.id}')" title="Delete">
-                    <i class="fa-solid fa-trash"></i>
-                </button>
-            </td>
+        html += `
+            <tr>
+                <td><strong>${escapeHTML(asset.ticker)}</strong></td>
+                <td>${s.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 5 })}</td>
+                <td>${formatCurrency(curr)}</td>
+                <td><strong class="primary-text">${formatCurrency(mktValue)}</strong></td>
+                <td>
+                    <button class="action-btn" onclick="editPortfolio('${asset.id}')" title="Edit">
+                        <i class="fa-solid fa-pen"></i>
+                    </button>
+                    <button class="action-btn delete" onclick="deletePortfolio('${asset.id}')" title="Delete">
+                        <i class="fa-solid fa-trash"></i>
+                    </button>
+                </td>
+            </tr>
         `;
-        elements.portfolioTableBody.appendChild(tr);
     });
 
-    const totalPnl = totalValue - totalCost;
-    const roi = totalCost > 0 ? (totalPnl / totalCost) * 100 : 0;
+    elements.portfolioTableBody.innerHTML = html;
 
     elements.portfolioTotalValue.textContent = formatCurrency(totalValue);
-    elements.portfolioTotalCost.textContent = formatCurrency(totalCost);
-
-    elements.portfolioUnrealizedPnl.textContent = formatCurrency(totalPnl);
-    elements.portfolioUnrealizedPnl.className = totalPnl >= 0 ? 'success-text' : 'danger-text';
-
-    elements.portfolioRoi.textContent = `${totalPnl >= 0 ? '+' : ''}${roi.toFixed(2)}%`;
-    elements.portfolioRoiTrend.className = `trend ${totalPnl >= 0 ? 'positive' : 'negative'}`;
+    if (document.getElementById('portfolio-active-positions')) document.getElementById('portfolio-active-positions').textContent = state.portfolio.length;
+    if (document.getElementById('portfolio-top-asset')) document.getElementById('portfolio-top-asset').textContent = topAsset.ticker;
 }
 
 // Helpers

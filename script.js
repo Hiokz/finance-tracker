@@ -1409,6 +1409,14 @@ async function renderPortfolio() {
         if (document.getElementById('portfolio-total-value-sgd')) document.getElementById('portfolio-total-value-sgd').textContent = formatCurrencySGD(0) + ' SGD';
         if (document.getElementById('portfolio-active-positions')) document.getElementById('portfolio-active-positions').textContent = '0';
         if (document.getElementById('portfolio-top-asset')) document.getElementById('portfolio-top-asset').textContent = '-';
+
+        // Sync Grand Total to Dashboard natively
+        const income = state.transactions.filter(t => t.type === 'income').reduce((a, c) => a + Number(c.amount), 0);
+        const expense = state.transactions.filter(t => t.type === 'expense').reduce((a, c) => a + Number(c.amount), 0);
+        if (elements.dashTotalBalance) {
+            elements.dashTotalBalance.textContent = isBalanceHidden ? '****' : formatCurrencySGD(income - expense);
+        }
+
         return;
     }
 
@@ -1451,13 +1459,22 @@ async function renderPortfolio() {
 
     elements.portfolioTableBody.innerHTML = html;
 
+    const totalPortfolioSgd = totalValue * sgdRate;
+
     elements.portfolioTotalValue.textContent = formatCurrency(totalValue);
     if (document.getElementById('portfolio-total-value-sgd')) {
-        document.getElementById('portfolio-total-value-sgd').textContent = formatCurrencySGD(totalValue * sgdRate) + ' SGD';
+        document.getElementById('portfolio-total-value-sgd').textContent = formatCurrencySGD(totalPortfolioSgd) + ' SGD';
     }
 
     if (document.getElementById('portfolio-active-positions')) document.getElementById('portfolio-active-positions').textContent = state.portfolio.length;
     if (document.getElementById('portfolio-top-asset')) document.getElementById('portfolio-top-asset').textContent = totalShares.toLocaleString(undefined, { maximumFractionDigits: 5 });
+
+    // Sync Net Worth (Transactions + Portfolio SDK) back to the overall Dashboard explicitly
+    const income = state.transactions.filter(t => t.type === 'income').reduce((a, c) => a + Number(c.amount), 0);
+    const expense = state.transactions.filter(t => t.type === 'expense').reduce((a, c) => a + Number(c.amount), 0);
+    if (elements.dashTotalBalance) {
+        elements.dashTotalBalance.textContent = isBalanceHidden ? '****' : formatCurrencySGD(income - expense + totalPortfolioSgd);
+    }
 }
 
 // Helpers

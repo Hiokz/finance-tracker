@@ -1301,8 +1301,28 @@ async function handlePortfolioSubmit(e) {
     btn.disabled = true;
 
     const id = elements.portfolioIdInput.value;
-    const ticker = elements.pfTickerInput.value.toUpperCase();
+    const ticker = elements.pfTickerInput.value.trim().toUpperCase();
     const shares = parseFloat(elements.pfSharesInput.value);
+
+    // 1. Basic Input Validation
+    if (!ticker || isNaN(shares) || shares <= 0) {
+        alert("Please enter a valid ticker and a positive number of shares.");
+        btn.disabled = false;
+        return;
+    }
+
+    // 2. Ticker Active Verification
+    btn.textContent = "Verifying Ticker...";
+    const livePriceCheck = await fetchLivePrice(ticker);
+    if (livePriceCheck === 0) {
+        alert(`Invalid Ticker: Could not find any live pricing data for ${ticker}!`);
+        btn.textContent = "Save Portfolio";
+        btn.disabled = false;
+        return;
+    }
+
+    btn.textContent = "Saving...";
+
     const avg_price = 0;
     const current_price = 0;
 

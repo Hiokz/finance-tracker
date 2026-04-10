@@ -25,15 +25,15 @@ serve(async (req) => {
         const yahooHeaders = new Headers();
         yahooHeaders.append("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
 
-        const response = await fetch(`https://query2.finance.yahoo.com/v10/finance/quoteModules/v1?symbol=${ticker}&modules=price`, {
+        const response = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${ticker}`, {
             headers: yahooHeaders
         });
 
         const data = await response.json();
 
         // Extract real-time underlying price if available
-        if (data?.quoteSummary?.result?.[0]?.price?.regularMarketPrice?.raw) {
-            const price = data.quoteSummary.result[0].price.regularMarketPrice.raw;
+        if (data?.chart?.result?.[0]?.meta?.regularMarketPrice) {
+            const price = data.chart.result[0].meta.regularMarketPrice;
             return new Response(JSON.stringify({ price }), {
                 headers: { ...corsHeaders, 'Content-Type': 'application/json' },
                 status: 200,

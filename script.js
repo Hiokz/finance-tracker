@@ -10,7 +10,8 @@ let state = {
     backtests: [],
     backtestTrades: [],
     notes: [],
-    portfolio: []
+    portfolio: [],
+    portfolioValueSGD: 0  // Cached live value
 };
 let currentUser = null;
 let currentCalDate = new Date();
@@ -866,7 +867,7 @@ function renderDashboard() {
         .filter(t => t.type === 'expense')
         .reduce((acc, curr) => acc + Number(curr.amount), 0);
 
-    const balance = income - expense;
+    const balance = income - expense + (state.portfolioValueSGD || 0);
 
     const totalPnl = state.trades.reduce((acc, curr) => acc + Number(curr.pnl), 0);
     const winningTrades = state.trades.filter(t => Number(t.pnl) > 0).length;
@@ -1410,12 +1411,9 @@ async function renderPortfolio() {
         if (document.getElementById('portfolio-active-positions')) document.getElementById('portfolio-active-positions').textContent = '0';
         if (document.getElementById('portfolio-top-asset')) document.getElementById('portfolio-top-asset').textContent = '-';
 
-        // Sync Grand Total to Dashboard natively
-        const income = state.transactions.filter(t => t.type === 'income').reduce((a, c) => a + Number(c.amount), 0);
-        const expense = state.transactions.filter(t => t.type === 'expense').reduce((a, c) => a + Number(c.amount), 0);
-        if (elements.dashTotalBalance) {
-            elements.dashTotalBalance.textContent = isBalanceHidden ? '****' : formatCurrencySGD(income - expense);
-        }
+        // Reset and Sync Grand Total to Dashboard natively
+        state.portfolioValueSGD = 0;
+        renderDashboard();
 
         return;
     }
@@ -1432,7 +1430,7 @@ async function renderPortfolio() {
     const rawSgdRate = livePrices.pop() || 1.35; // Default fallback to 1.35 if heavily rate limited
 
     // Apply a mathematical offset exactly mimicking Webull's institutional conversion spread
-    const sgdRate = rawSgdRate * 0.9975;
+    const sgdRate = rawSgdRate * 0.9977;
 
     state.portfolio.forEach((asset, index) => {
         const s = Number(asset.shares);
@@ -1472,12 +1470,9 @@ async function renderPortfolio() {
     if (document.getElementById('portfolio-active-positions')) document.getElementById('portfolio-active-positions').textContent = state.portfolio.length;
     if (document.getElementById('portfolio-top-asset')) document.getElementById('portfolio-top-asset').textContent = totalShares.toLocaleString(undefined, { maximumFractionDigits: 5 });
 
-    // Sync Net Worth (Transactions + Portfolio SDK) back to the overall Dashboard explicitly
-    const income = state.transactions.filter(t => t.type === 'income').reduce((a, c) => a + Number(c.amount), 0);
-    const expense = state.transactions.filter(t => t.type === 'expense').reduce((a, c) => a + Number(c.amount), 0);
-    if (elements.dashTotalBalance) {
-        elements.dashTotalBalance.textContent = isBalanceHidden ? '****' : formatCurrencySGD(income - expense + totalPortfolioSgd);
-    }
+    // Cache live value securely in state and route updates through the main dashboard engine
+    state.portfolioValueSGD = totalPortfolioSgd;
+    renderDashboard();
 }
 
 // Helpers

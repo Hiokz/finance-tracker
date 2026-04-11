@@ -1431,7 +1431,7 @@ async function renderPortfolio() {
     const rawSgdRate = livePrices.pop() || 1.35; // Default fallback to 1.35 if heavily rate limited
 
     // Apply a mathematical offset exactly mimicking Webull's institutional conversion spread
-    const sgdRate = rawSgdRate * 0.9975;
+    const sgdRate = rawSgdRate * 0.99705;
 
     state.portfolio.forEach((asset, index) => {
         const s = Number(asset.shares);

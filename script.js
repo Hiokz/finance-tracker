@@ -156,7 +156,7 @@ function initDOM() {
 }
 
 // Global UI State
-let isBalanceHidden = false;
+let isBalanceHidden = localStorage.getItem('isBalanceHidden') !== 'false';
 
 // Initialize Application
 async function init() {
@@ -362,6 +362,7 @@ function setupEventListeners() {
     if (elements.totalBalanceCard) {
         elements.totalBalanceCard.addEventListener('click', () => {
             isBalanceHidden = !isBalanceHidden;
+            localStorage.setItem('isBalanceHidden', isBalanceHidden);
             renderDashboard();
         });
     }

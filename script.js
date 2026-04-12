@@ -6,7 +6,7 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // State Management
 let state = {
     transactions: [],
-    trades: [],
+
     backtests: [],
     backtestTrades: [],
     notes: [],
@@ -26,7 +26,7 @@ async function loadComponents() {
         { id: 'sidebar-placeholder', url: 'components/sidebar.html' },
         { id: 'dashboard-placeholder', url: 'components/dashboard.html' },
         { id: 'transactions-placeholder', url: 'components/transactions.html' },
-        { id: 'journal-placeholder', url: 'components/journal.html' },
+
         { id: 'backtesting-placeholder', url: 'components/backtesting.html' },
         { id: 'portfolio-placeholder', url: 'components/portfolio.html' },
         { id: 'notes-placeholder', url: 'components/notes.html' },
@@ -70,17 +70,13 @@ function initDOM() {
         dashTotalBalance: document.getElementById('dash-total-balance'),
         dashTotalIncome: document.getElementById('dash-total-income'),
         dashTotalExpense: document.getElementById('dash-total-expense'),
-        dashTradingPnl: document.getElementById('dash-trading-pnl'),
-        dashWinRate: document.getElementById('dash-win-rate'),
+
 
         transactionModal: document.getElementById('transaction-modal'),
-        tradeModal: document.getElementById('trade-modal'),
         btnAddTransaction: document.getElementById('btn-add-transaction'),
         closeTransactionModal: document.getElementById('close-transaction-modal'),
-        closeTradeModal: document.getElementById('close-trade-modal'),
 
         transactionForm: document.getElementById('transaction-form'),
-        tradeForm: document.getElementById('trade-form'),
 
         transactionsList: document.getElementById('transactions-list'),
         noTransactions: document.getElementById('no-transactions'),
@@ -90,13 +86,6 @@ function initDOM() {
         calPrevBtn: document.getElementById('cal-prev-month'),
         calNextBtn: document.getElementById('cal-next-month'),
 
-        dayTradesModal: document.getElementById('day-trades-modal'),
-        closeDayTradesModal: document.getElementById('close-day-trades-modal'),
-        dayTradesTitle: document.getElementById('day-trades-title'),
-        dayTradesPnl: document.getElementById('day-trades-pnl'),
-        dayTradesCount: document.getElementById('day-trades-count'),
-        dayTradesList: document.getElementById('day-trades-list'),
-        btnAddTradeDay: document.getElementById('btn-add-trade-day'),
 
         // Backtesting DOM Elements
         newBacktestModal: document.getElementById('new-backtest-modal'),
@@ -208,37 +197,6 @@ function lockApp() {
 }
 
 // Event Listeners
-// Auto P&L Calculation for XAUUSD (1 Lot = 100 units)
-function calculateXauusdPnl() {
-    const entryEl = document.getElementById('td-entry');
-    const exitEl = document.getElementById('td-exit');
-    const lotsEl = document.getElementById('td-lots');
-    const dirEl = document.getElementById('td-direction');
-    const prevEl = document.getElementById('td-pnl-preview');
-
-    if (!entryEl || !exitEl || !lotsEl || !dirEl || !prevEl) return;
-
-    const entry = parseFloat(entryEl.value);
-    const exit = parseFloat(exitEl.value);
-    const lots = parseFloat(lotsEl.value);
-    const dir = dirEl.value;
-
-    if (isNaN(entry) || isNaN(exit) || isNaN(lots) || lots <= 0) {
-        prevEl.value = '$0.00';
-        prevEl.className = '';
-        return;
-    }
-
-    let pnl = 0;
-    if (dir === 'long') {
-        pnl = (exit - entry) * lots * 100;
-    } else {
-        pnl = (entry - exit) * lots * 100;
-    }
-
-    prevEl.value = (pnl >= 0 ? '+$' : '-$') + Math.abs(pnl).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    prevEl.className = pnl >= 0 ? 'success-text' : 'danger-text';
-}
 
 function calculateBtXauusdPnl() {
     const entryEl = document.getElementById('bt-td-entry');
@@ -351,13 +309,6 @@ function setupEventListeners() {
         });
     }
 
-    if (elements.btnAddTradeDay) {
-        elements.btnAddTradeDay.addEventListener('click', () => {
-            // Close day trades modal temporarily if open? Or overlay.
-            // Overlaying modals works natively via Z-index, which is handled in CSS/HTML setup.
-            openModal(elements.tradeModal);
-        });
-    }
 
     if (elements.totalBalanceCard) {
         elements.totalBalanceCard.addEventListener('click', () => {
@@ -377,7 +328,6 @@ function setupEventListeners() {
                 const hiddenInput = group.parentElement.querySelector('input[type="hidden"]');
                 if (hiddenInput) {
                     hiddenInput.value = btn.dataset.value;
-                    if (hiddenInput.id === 'td-direction') calculateXauusdPnl();
                     if (hiddenInput.id === 'bt-td-direction') calculateBtXauusdPnl();
                 }
             });
@@ -386,9 +336,6 @@ function setupEventListeners() {
 
     // Trade Inputs for Auto P&L
     document.addEventListener('input', (e) => {
-        if (e.target.id === 'td-entry' || e.target.id === 'td-exit' || e.target.id === 'td-lots') {
-            calculateXauusdPnl();
-        }
         if (e.target.id === 'bt-td-entry' || e.target.id === 'bt-td-exit' || e.target.id === 'bt-td-lots') {
             calculateBtXauusdPnl();
         }
@@ -400,13 +347,6 @@ function setupEventListeners() {
         openModal(elements.transactionModal);
     });
     elements.closeTransactionModal.addEventListener('click', () => closeModal(elements.transactionModal));
-    elements.closeTradeModal.addEventListener('click', () => closeModal(elements.tradeModal));
-    if (elements.closeDayTradesModal) {
-        elements.closeDayTradesModal.addEventListener('click', () => {
-            closeModal(elements.dayTradesModal);
-            window.selectedTradeDate = null;
-        });
-    }
 
     // Backtest Modals
     if (elements.btnNewBacktest) {
@@ -442,13 +382,12 @@ function setupEventListeners() {
     window.addEventListener('click', (e) => {
         if (e.target.classList.contains('modal-overlay')) {
             closeModal(e.target);
-            if (e.target.id === 'day-trades-modal') window.selectedTradeDate = null;
         }
     });
 
     // Forms
     elements.transactionForm.addEventListener('submit', handleTransactionSubmit);
-    elements.tradeForm.addEventListener('submit', handleTradeSubmit);
+
 
     // Backtest Forms
     if (elements.newBacktestForm) {
@@ -526,15 +465,11 @@ function openModal(modal) {
     // Pre-fill date inputs with today's date
     const dateInput = modal.querySelector('input[type="date"]');
     if (dateInput) {
-        if (modal.id === 'trade-modal' && window.selectedTradeDate) {
-            dateInput.value = window.selectedTradeDate;
-        } else {
-            const today = new Date();
-            const year = today.getFullYear();
-            const month = String(today.getMonth() + 1).padStart(2, '0');
-            const day = String(today.getDate()).padStart(2, '0');
-            dateInput.value = `${year}-${month}-${day}`;
-        }
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = String(today.getMonth() + 1).padStart(2, '0');
+        const day = String(today.getDate()).padStart(2, '0');
+        dateInput.value = `${year}-${month}-${day}`;
     }
 }
 
@@ -572,14 +507,6 @@ async function loadData() {
         state.transactions = txData;
     }
 
-    const { data: trData, error: trError } = await supabaseClient
-        .from('trades')
-        .select('*')
-        .order('date', { ascending: false });
-
-    if (!trError && trData) {
-        state.trades = trData;
-    }
 
     const { data: bsData, error: bsError } = await supabaseClient
         .from('backtest_sessions')
@@ -659,82 +586,6 @@ window.deleteTransaction = async function (id) {
     }
 }
 
-async function handleTradeSubmit(e) {
-    e.preventDefault();
-    if (!currentUser) return;
-
-    const btn = elements.tradeForm.querySelector('button[type="submit"]');
-    btn.disabled = true;
-
-    const asset = document.getElementById('td-asset').value;
-    const direction = document.getElementById('td-direction').value;
-    const date = document.getElementById('td-date').value;
-    const entry = parseFloat(document.getElementById('td-entry').value);
-    const exit = parseFloat(document.getElementById('td-exit').value);
-    const lots = parseFloat(document.getElementById('td-lots').value);
-
-    const slRaw = document.getElementById('td-sl').value;
-    const tpRaw = document.getElementById('td-tp').value;
-    const stop_loss = slRaw ? parseFloat(slRaw) : 0;
-    const take_profit = tpRaw ? parseFloat(tpRaw) : 0;
-
-    const notes = document.getElementById('td-notes').value;
-
-    // Recalculate PnL securely before saving
-    let pnl = 0;
-    if (direction === 'long') {
-        pnl = (exit - entry) * lots * 100;
-    } else {
-        pnl = (entry - exit) * lots * 100;
-    }
-
-    const payload = {
-        user_id: currentUser.id,
-        asset: asset,
-        direction: direction,
-        entry_price: entry,
-        exit_price: exit,
-        pnl: pnl,
-        notes: notes,
-        date: date,
-        lot_size: lots,
-        stop_loss: stop_loss,
-        take_profit: take_profit
-    };
-
-    const { data, error } = await supabaseClient
-        .from('trades')
-        .insert([payload])
-        .select();
-
-    if (!error && data) {
-        state.trades.push(data[0]);
-        state.trades.sort((a, b) => new Date(b.date) - new Date(a.date));
-        closeModal(elements.tradeModal);
-        elements.tradeForm.reset();
-        document.getElementById('td-pnl-preview').value = '';
-        renderAll();
-        if (window.selectedTradeDate && elements.dayTradesModal && elements.dayTradesModal.classList.contains('active')) {
-            renderDayTrades();
-        }
-    } else {
-        console.error("Error inserting trade:", error);
-        alert("Failed to log trade.");
-    }
-
-    btn.disabled = false;
-}
-
-window.deleteTrade = async function (id) {
-    const { error } = await supabaseClient.from('trades').delete().eq('id', id);
-    if (!error) {
-        state.trades = state.trades.filter(t => t.id !== id);
-        renderAll();
-        if (window.selectedTradeDate && elements.dayTradesModal && elements.dayTradesModal.classList.contains('active')) {
-            renderDayTrades();
-        }
-    }
-}
 
 // Backtest Submit Handlers
 async function handleNewBacktestSubmit(e) {
@@ -848,7 +699,6 @@ window.deleteBacktestTrade = async function (id) {
 function renderAll() {
     renderDashboard();
     renderTransactionsTable();
-    renderPnlCalendar();
     renderNotes();
     renderPortfolio();
 
@@ -870,19 +720,9 @@ function renderDashboard() {
 
     const balance = income - expense + (state.portfolioValueSGD || 0);
 
-    const totalPnl = state.trades.reduce((acc, curr) => acc + Number(curr.pnl), 0);
-    const winningTrades = state.trades.filter(t => Number(t.pnl) > 0).length;
-    const winRate = state.trades.length > 0
-        ? ((winningTrades / state.trades.length) * 100).toFixed(1)
-        : 0;
-
     elements.dashTotalBalance.textContent = isBalanceHidden ? '****' : formatCurrencySGD(balance);
     elements.dashTotalIncome.textContent = `+${formatCurrencySGD(income)}`;
     elements.dashTotalExpense.textContent = `-${formatCurrencySGD(expense)}`;
-
-    elements.dashTradingPnl.textContent = formatCurrency(totalPnl);
-    elements.dashTradingPnl.className = totalPnl >= 0 ? 'success-text' : 'danger-text';
-    elements.dashWinRate.textContent = `${winRate}%`;
 }
 
 function renderTransactionsTable() {
@@ -916,166 +756,7 @@ function renderTransactionsTable() {
     });
 }
 
-function renderPnlCalendar() {
-    if (!elements.calGrid) return;
 
-    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-    elements.calMonthDisplay.textContent = `${monthNames[currentCalDate.getMonth()]} ${currentCalDate.getFullYear()}`;
-
-    const year = currentCalDate.getFullYear();
-    const month = currentCalDate.getMonth();
-
-    // Group trades by date for this month
-    const dailyPnl = {};
-    state.trades.forEach(t => {
-        const [tYear, tMonth] = t.date.split('-');
-        if (Number(tYear) === year && Number(tMonth) - 1 === month) {
-            if (!dailyPnl[t.date]) dailyPnl[t.date] = 0;
-            dailyPnl[t.date] += Number(t.pnl);
-        }
-    });
-
-    let html = `
-        <div class="cal-header-cell">Mon</div>
-        <div class="cal-header-cell">Tue</div>
-        <div class="cal-header-cell">Wed</div>
-        <div class="cal-header-cell">Thu</div>
-        <div class="cal-header-cell">Fri</div>
-    `;
-
-    // Collect only weekdays (Mon-Fri) for the current month
-    const daysInMonth = new Date(year, month + 1, 0).getDate();
-    const weekdayCells = [];
-
-    for (let d = 1; d <= daysInMonth; d++) {
-        const dow = new Date(year, month, d).getDay();
-        if (dow >= 1 && dow <= 5) { // Mon=1 to Fri=5
-            const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-            weekdayCells.push({ day: d, dateStr, isCurrentMonth: true });
-        }
-    }
-
-    // Pad the FIRST row: if the month doesn't start on Monday, leave empty cells
-    if (weekdayCells.length > 0) {
-        const firstDow = new Date(year, month, weekdayCells[0].day).getDay(); // 1=Mon ... 5=Fri
-        const padStart = firstDow - 1; // Mon needs 0 pads, Tue needs 1, etc.
-        for (let i = 0; i < padStart; i++) {
-            html += `<div class="cal-cell empty"><div class="cal-date"></div></div>`;
-        }
-    }
-
-    // Render each weekday cell
-    weekdayCells.forEach(cell => {
-        let cellClass = 'cal-cell';
-        let pnlHtml = '';
-        let countHtml = '';
-
-        if (dailyPnl[cell.dateStr] !== undefined) {
-            const dayTrades = state.trades.filter(t => t.date === cell.dateStr);
-            const count = dayTrades.length;
-            if (count > 0) {
-                const countText = count === 1 ? '1 Trade' : `${count} Trades`;
-                countHtml = `<div class="cal-trades-count" style="font-size: 0.70rem; color: rgba(255,255,255,0.4); margin-top: 2px;">${countText}</div>`;
-            }
-
-            const pnl = dailyPnl[cell.dateStr];
-            if (pnl > 0) {
-                cellClass += ' profit';
-                pnlHtml = `<div class="cal-pnl success-text">+${formatCurrency(pnl)}</div>`;
-            } else if (pnl < 0) {
-                cellClass += ' loss';
-                pnlHtml = `<div class="cal-pnl danger-text">${formatCurrency(pnl)}</div>`;
-            } else {
-                pnlHtml = `<div class="cal-pnl" style="color: #94a3b8;">$0.00</div>`;
-            }
-        }
-
-        if (window.selectedTradeDate === cell.dateStr) {
-            cellClass += ' selected';
-        }
-
-        html += `
-            <div class="${cellClass}" data-date="${cell.dateStr}">
-                <div class="cal-date">${cell.day}</div>
-                ${pnlHtml}
-                ${countHtml}
-            </div>
-        `;
-    });
-
-    // Pad the LAST row with next month's days to fill remaining cells
-    if (weekdayCells.length > 0) {
-        const lastDay = weekdayCells[weekdayCells.length - 1].day;
-        const lastDow = new Date(year, month, lastDay).getDay(); // 1=Mon ... 5=Fri
-        const padEnd = 5 - lastDow;
-        let nextDay = 1;
-        for (let i = 0; i < padEnd; i++) {
-            html += `<div class="cal-cell empty" style="cursor: default;"><div class="cal-date">${nextDay++}</div></div>`;
-        }
-    }
-
-    elements.calGrid.innerHTML = html;
-
-    // Attach click listeners to valid days
-    elements.calGrid.querySelectorAll('.cal-cell:not(.empty)').forEach(cellNode => {
-        cellNode.addEventListener('click', () => {
-            const clickedDate = cellNode.dataset.date;
-            window.selectedTradeDate = clickedDate;
-
-            // Re-render and Open Modal
-            renderDayTrades();
-            openModal(elements.dayTradesModal);
-        });
-    });
-}
-
-function renderDayTrades() {
-    if (!elements.dayTradesList) return;
-    elements.dayTradesList.innerHTML = '';
-
-    if (!window.selectedTradeDate) return;
-
-    const d = new Date(window.selectedTradeDate);
-    elements.dayTradesTitle.textContent = `Trades for ${d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}`;
-
-    const filteredTrades = state.trades.filter(t => t.date === window.selectedTradeDate);
-
-    const dayPnl = filteredTrades.reduce((acc, t) => acc + Number(t.pnl), 0);
-    elements.dayTradesPnl.textContent = formatCurrency(dayPnl);
-    elements.dayTradesPnl.className = dayPnl >= 0 ? 'success-text' : 'danger-text';
-
-    if (elements.dayTradesCount) {
-        elements.dayTradesCount.textContent = filteredTrades.length;
-    }
-
-    if (filteredTrades.length === 0) {
-        elements.dayTradesList.innerHTML = `<tr><td colspan="7" style="text-align:center; padding: 2rem; color: var(--text-muted);">No trades logged on this date.</td></tr>`;
-        return;
-    }
-
-    filteredTrades.forEach(t => {
-        const badgeClass = t.direction;
-        const pnl = Number(t.pnl);
-        const pnlClass = pnl >= 0 ? 'success-text' : 'danger-text';
-        const pnlPrefix = pnl >= 0 ? '+' : '';
-
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-            <td>${formatDate(t.date)}</td>
-            <td><strong>${escapeHTML(t.asset)}</strong></td>
-            <td><span class="badge ${badgeClass}">${t.direction.toUpperCase()}</span></td>
-            <td>$${Number(t.entry_price).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-            <td>$${Number(t.exit_price).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-            <td class="${pnlClass}">${pnlPrefix}${formatCurrency(pnl)}</td>
-            <td>
-                <button class="action-btn delete" onclick="deleteTrade('${t.id}')">
-                    <i class="fa-solid fa-trash"></i>
-                </button>
-            </td>
-        `;
-        elements.dayTradesList.appendChild(tr);
-    });
-}
 
 function renderBacktestList() {
     if (!elements.backtestSessionsList) return;

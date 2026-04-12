@@ -7,8 +7,7 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 let state = {
     transactions: [],
 
-    backtests: [],
-    backtestTrades: [],
+
     notes: [],
     portfolio: [],
     portfolioValueSGD: 0  // Cached live value
@@ -27,7 +26,7 @@ async function loadComponents() {
         { id: 'dashboard-placeholder', url: 'components/dashboard.html' },
         { id: 'transactions-placeholder', url: 'components/transactions.html' },
 
-        { id: 'backtesting-placeholder', url: 'components/backtesting.html' },
+
         { id: 'portfolio-placeholder', url: 'components/portfolio.html' },
         { id: 'notes-placeholder', url: 'components/notes.html' },
         { id: 'modals-placeholder', url: 'components/modals.html' }
@@ -87,29 +86,6 @@ function initDOM() {
         calNextBtn: document.getElementById('cal-next-month'),
 
 
-        // Backtesting DOM Elements
-        newBacktestModal: document.getElementById('new-backtest-modal'),
-        backtestTradeModal: document.getElementById('backtest-trade-modal'),
-        closeNewBacktestModal: document.getElementById('close-new-backtest-modal'),
-        closeBacktestTradeModal: document.getElementById('close-backtest-trade-modal'),
-        newBacktestForm: document.getElementById('new-backtest-form'),
-        backtestTradeForm: document.getElementById('backtest-trade-form'),
-
-        btnNewBacktest: document.getElementById('btn-new-backtest'),
-        btnOpenBacktestTrade: document.getElementById('btn-add-backtest-trade'),
-        btnCloseBacktest: document.getElementById('btn-close-backtest'),
-
-        listViewBacktest: document.getElementById('backtest-list-view'),
-        activeViewBacktest: document.getElementById('active-backtest-view'),
-        backtestSessionsList: document.getElementById('backtest-sessions-list'),
-        backtestTradesList: document.getElementById('backtest-trades-list'),
-
-        btInitBal: document.getElementById('bt-initial-balance'),
-        btCurrBal: document.getElementById('bt-current-balance'),
-        btNetPnl: document.getElementById('bt-net-pnl'),
-        btWinRate: document.getElementById('bt-win-rate'),
-        btTotalTrades: document.getElementById('bt-total-trades'),
-        btSectionHeading: document.getElementById('bt-section-heading'),
 
         // Notes DOM
         noteModal: document.getElementById('note-modal'),
@@ -198,47 +174,6 @@ function lockApp() {
 
 // Event Listeners
 
-function calculateBtXauusdPnl() {
-    const entryEl = document.getElementById('bt-td-entry');
-    const exitEl = document.getElementById('bt-td-exit');
-    const lotsEl = document.getElementById('bt-td-lots');
-    const prevEl = document.getElementById('bt-td-pnl-preview');
-    const dirInput = document.getElementById('bt-td-direction');
-
-    if (!entryEl || !exitEl || !lotsEl || !prevEl || !dirInput) return;
-
-    let dir = dirInput.value;
-
-    const entry = parseFloat(entryEl.value);
-    const exit = parseFloat(exitEl.value);
-    const lots = parseFloat(lotsEl.value);
-
-    if (isNaN(entry) || isNaN(exit) || isNaN(lots) || lots <= 0) {
-        prevEl.value = '';
-        prevEl.className = '';
-        return;
-    }
-
-    let pnl = 0;
-    if (dir === 'long') {
-        pnl = (exit - entry) * lots * 100;
-    } else {
-        pnl = (entry - exit) * lots * 100;
-    }
-
-    // Format like trading journal ui
-    const formattedPnl = Math.abs(pnl).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    if (pnl > 0) {
-        prevEl.value = `+ $${formattedPnl}`;
-        prevEl.className = 'success-text';
-    } else if (pnl < 0) {
-        prevEl.value = `- $${formattedPnl}`;
-        prevEl.className = 'danger-text';
-    } else {
-        prevEl.value = `$0.00`;
-        prevEl.className = '';
-    }
-}
 
 function setupEventListeners() {
     // Login Submit
@@ -328,18 +263,11 @@ function setupEventListeners() {
                 const hiddenInput = group.parentElement.querySelector('input[type="hidden"]');
                 if (hiddenInput) {
                     hiddenInput.value = btn.dataset.value;
-                    if (hiddenInput.id === 'bt-td-direction') calculateBtXauusdPnl();
                 }
             });
         });
     });
 
-    // Trade Inputs for Auto P&L
-    document.addEventListener('input', (e) => {
-        if (e.target.id === 'bt-td-entry' || e.target.id === 'bt-td-exit' || e.target.id === 'bt-td-lots') {
-            calculateBtXauusdPnl();
-        }
-    });
 
     // Modals
     elements.btnAddTransaction.addEventListener('click', () => {
@@ -348,54 +276,7 @@ function setupEventListeners() {
     });
     elements.closeTransactionModal.addEventListener('click', () => closeModal(elements.transactionModal));
 
-    // Backtest Modals
-    if (elements.btnNewBacktest) {
-        elements.btnNewBacktest.addEventListener('click', () => openModal(elements.newBacktestModal));
-    }
-    if (elements.closeNewBacktestModal) elements.closeNewBacktestModal.addEventListener('click', () => closeModal(elements.newBacktestModal));
 
-    if (elements.btnOpenBacktestTrade) {
-        elements.btnOpenBacktestTrade.addEventListener('click', () => {
-            openModal(elements.backtestTradeModal);
-            document.getElementById('bt-td-pnl-preview').value = '';
-            document.getElementById('bt-td-pnl-preview').className = '';
-        });
-    }
-    if (elements.closeBacktestTradeModal) elements.closeBacktestTradeModal.addEventListener('click', () => closeModal(elements.backtestTradeModal));
-
-    if (elements.btnCloseBacktest) {
-        elements.btnCloseBacktest.addEventListener('click', () => {
-            window.selectedBacktestId = null;
-            elements.activeViewBacktest.style.display = 'none';
-            elements.listViewBacktest.style.display = 'block';
-            // Toggle buttons
-            elements.btnNewBacktest.style.display = '';
-            elements.btnCloseBacktest.style.display = 'none';
-            elements.btnOpenBacktestTrade.style.display = 'none';
-            elements.btSectionHeading.textContent = 'Backtesting Sessions';
-
-            // Re-render the list so new trades update the session balance
-            renderBacktestList();
-        });
-    }
-
-    window.addEventListener('click', (e) => {
-        if (e.target.classList.contains('modal-overlay')) {
-            closeModal(e.target);
-        }
-    });
-
-    // Forms
-    elements.transactionForm.addEventListener('submit', handleTransactionSubmit);
-
-
-    // Backtest Forms
-    if (elements.newBacktestForm) {
-        elements.newBacktestForm.addEventListener('submit', handleNewBacktestSubmit);
-    }
-    if (elements.backtestTradeForm) {
-        elements.backtestTradeForm.addEventListener('submit', handleBacktestTradeSubmit);
-    }
 
     // Notes Event Listeners
     if (elements.btnNewNote) {
@@ -507,24 +388,6 @@ async function loadData() {
         state.transactions = txData;
     }
 
-
-    const { data: bsData, error: bsError } = await supabaseClient
-        .from('backtest_sessions')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-    if (!bsError && bsData) {
-        state.backtests = bsData;
-    }
-
-    const { data: btData, error: btError } = await supabaseClient
-        .from('backtest_trades')
-        .select('*')
-        .order('date', { ascending: false });
-
-    if (!btError && btData) {
-        state.backtestTrades = btData;
-    }
 
     const { data: notesData, error: notesError } = await supabaseClient
         .from('notes')
@@ -687,13 +550,6 @@ async function handleBacktestTradeSubmit(e) {
     btn.disabled = false;
 }
 
-window.deleteBacktestTrade = async function (id) {
-    const { error } = await supabaseClient.from('backtest_trades').delete().eq('id', id);
-    if (!error) {
-        state.backtestTrades = state.backtestTrades.filter(t => t.id !== id);
-        renderActiveBacktest();
-    }
-}
 
 // Core Rendering
 function renderAll() {
@@ -701,12 +557,6 @@ function renderAll() {
     renderTransactionsTable();
     renderNotes();
     renderPortfolio();
-
-    if (window.selectedBacktestId) {
-        renderActiveBacktest();
-    } else {
-        renderBacktestList();
-    }
 }
 
 function renderDashboard() {
@@ -756,117 +606,6 @@ function renderTransactionsTable() {
     });
 }
 
-
-
-function renderBacktestList() {
-    if (!elements.backtestSessionsList) return;
-    elements.backtestSessionsList.innerHTML = '';
-
-    if (state.backtests.length === 0) {
-        elements.backtestSessionsList.innerHTML = `<tr><td colspan="5" style="text-align:center; padding: 2rem; color: var(--text-muted);">No backtest sessions found. Let's create one!</td></tr>`;
-        return;
-    }
-
-    state.backtests.forEach(bs => {
-        // Calculate dynamic balance for the session
-        const sessionTrades = state.backtestTrades.filter(t => t.session_id === bs.id);
-        const totalPnl = sessionTrades.reduce((acc, curr) => acc + Number(curr.pnl), 0);
-        const initial = Number(bs.initial_balance);
-        const current = initial + totalPnl;
-
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-            <td><strong>${escapeHTML(bs.name)}</strong></td>
-            <td>${formatCurrency(initial)}</td>
-            <td class="${current >= initial ? 'success-text' : 'danger-text'}">
-                <strong>${formatCurrency(current)}</strong>
-            </td>
-            <td>${new Date(bs.created_at).toLocaleDateString()}</td>
-            <td>
-                <div style="display: flex; gap: 8px;">
-                    <button class="btn btn-outline" style="padding: 4px 12px; font-size: 0.85rem;" onclick="openBacktestSession('${bs.id}')">
-                        Open
-                    </button>
-                    <button class="action-btn delete" onclick="deleteBacktest('${bs.id}')">
-                        <i class="fa-solid fa-trash"></i>
-                    </button>
-                </div>
-            </td>
-        `;
-        elements.backtestSessionsList.appendChild(tr);
-    });
-}
-
-window.openBacktestSession = function (id) {
-    window.selectedBacktestId = id;
-    elements.listViewBacktest.style.display = 'none';
-    elements.activeViewBacktest.style.display = 'block';
-    // Toggle buttons
-    elements.btnNewBacktest.style.display = 'none';
-    elements.btnCloseBacktest.style.display = '';
-    elements.btnOpenBacktestTrade.style.display = '';
-    // Update heading to session name
-    const session = state.backtests.find(s => s.id === id);
-    if (session) elements.btSectionHeading.textContent = session.name;
-    renderActiveBacktest();
-}
-
-function renderActiveBacktest() {
-    if (!window.selectedBacktestId || !elements.backtestTradesList) return;
-
-    const session = state.backtests.find(s => s.id === window.selectedBacktestId);
-    if (!session) return;
-
-    elements.btSectionHeading.textContent = session.name;
-
-    const trades = state.backtestTrades.filter(t => t.session_id === session.id);
-    const initial = Number(session.initial_balance);
-    const totalPnl = trades.reduce((acc, curr) => acc + Number(curr.pnl), 0);
-    const winningTrades = trades.filter(t => Number(t.pnl) > 0).length;
-
-    const current = initial + totalPnl;
-    const netGrowth = ((current - initial) / initial) * 100;
-    const winRate = trades.length > 0 ? ((winningTrades / trades.length) * 100).toFixed(1) : 0;
-
-    elements.btInitBal.textContent = formatCurrency(initial);
-    elements.btCurrBal.textContent = formatCurrency(current);
-    elements.btCurrBal.className = current >= initial ? 'success-text' : 'danger-text';
-
-    elements.btNetPnl.textContent = `${netGrowth >= 0 ? '+' : ''}${netGrowth.toFixed(2)}%`;
-    elements.btNetPnl.className = `trend ${netGrowth >= 0 ? 'positive' : 'negative'}`;
-
-    elements.btWinRate.textContent = `${winRate}%`;
-    elements.btTotalTrades.textContent = trades.length;
-
-    elements.backtestTradesList.innerHTML = '';
-
-    if (trades.length === 0) {
-        elements.backtestTradesList.innerHTML = `<tr><td colspan="7" style="text-align:center; padding: 2rem; color: var(--text-muted);">No trades logged in this session yet.</td></tr>`;
-        return;
-    }
-
-    trades.forEach(t => {
-        const pnl = Number(t.pnl);
-        const pnlClass = pnl >= 0 ? 'success-text' : 'danger-text';
-        const pnlPrefix = pnl >= 0 ? '+' : '';
-
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-            <td>${formatDate(t.date)}</td>
-            <td><strong>${escapeHTML(t.asset)}</strong></td>
-            <td><span class="badge ${t.direction}">${t.direction.toUpperCase()}</span></td>
-            <td>$${Number(t.entry_price).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-            <td>$${Number(t.exit_price).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-            <td class="${pnlClass}">${pnlPrefix}${formatCurrency(pnl)}</td>
-            <td>
-                <button class="action-btn delete" onclick="deleteBacktestTrade('${t.id}')">
-                    <i class="fa-solid fa-trash"></i>
-                </button>
-            </td>
-        `;
-        elements.backtestTradesList.appendChild(tr);
-    });
-}
 
 // Notes logic
 window.editNote = function (id) {

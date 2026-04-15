@@ -592,12 +592,12 @@ function renderTransactionsTable() {
         tr.innerHTML = `
             <td>${formatDate(t.date)}</td>
             <td><strong>${escapeHTML(t.description)}</strong></td>
-            <td><span class="badge ${t.type}">${t.type}</span></td>
-            <td class="${t.type === 'income' ? 'success-text' : 'danger-text'}">
-                ${t.type === 'income' ? '+' : '-'}${formatCurrency(t.amount)}
+            <td><span class="badge ${escapeHTML(t.type)}">${escapeHTML(t.type)}</span></td>
+            <td class="${escapeHTML(t.type) === 'income' ? 'success-text' : 'danger-text'}">
+                ${escapeHTML(t.type) === 'income' ? '+' : '-'}${formatCurrency(t.amount)}
             </td>
             <td>
-                <button class="action-btn delete" onclick="deleteTransaction('${t.id}')">
+                <button class="action-btn delete" onclick="deleteTransaction('${escapeHTML(t.id)}')">
                     <i class="fa-solid fa-trash"></i>
                 </button>
             </td>
@@ -693,8 +693,8 @@ function renderNotes() {
     }
 
     elements.notesGrid.innerHTML = state.notes.map(note => `
-        <div class="note-card" style="background-color: ${note.color};" onclick="editNote('${note.id}')">
-            <button class="note-delete-btn" onclick="deleteNote('${note.id}', event)" title="Delete Note">
+        <div class="note-card" style="background-color: ${escapeHTML(note.color)};" onclick="editNote('${escapeHTML(note.id)}')">
+            <button class="note-delete-btn" onclick="deleteNote('${escapeHTML(note.id)}', event)" title="Delete Note">
                 <i class="fa-solid fa-trash"></i>
             </button>
             <h4>${escapeHTML(note.title)}</h4>
@@ -868,10 +868,10 @@ async function renderPortfolio() {
                 <td>${formatCurrency(curr)}</td>
                 <td><strong class="primary-text">${formatCurrency(mktValue)}</strong></td>
                 <td>
-                    <button class="action-btn" onclick="editPortfolio('${asset.id}')" title="Edit">
+                    <button class="action-btn" onclick="editPortfolio('${escapeHTML(asset.id)}')" title="Edit">
                         <i class="fa-solid fa-pen"></i>
                     </button>
-                    <button class="action-btn delete" onclick="deletePortfolio('${asset.id}')" title="Delete">
+                    <button class="action-btn delete" onclick="deletePortfolio('${escapeHTML(asset.id)}')" title="Delete">
                         <i class="fa-solid fa-trash"></i>
                     </button>
                 </td>

@@ -112,6 +112,7 @@ function initDOM() {
         pfCurrentPriceInput: document.getElementById('pf-current-price'),
         portfolioModalTitle: document.getElementById('portfolio-modal-title'),
         portfolioTotalValue: document.getElementById('portfolio-total-value'),
+        portfolioDailyPnl: document.getElementById('portfolio-daily-pnl'),
         portfolioTotalCost: document.getElementById('portfolio-total-cost'),
         portfolioUnrealizedPnl: document.getElementById('portfolio-unrealized-pnl'),
         portfolioRoiTrend: document.getElementById('portfolio-roi-trend'),
@@ -886,6 +887,40 @@ async function renderPortfolio() {
     elements.portfolioTotalValue.textContent = formatCurrency(totalValue);
     if (document.getElementById('portfolio-total-value-sgd')) {
         document.getElementById('portfolio-total-value-sgd').textContent = formatCurrencySGD(totalPortfolioSgd) + ' SGD';
+    }
+
+    // --- Portfolio History Snapshot & Daily PnL ---
+    if (totalValue > 0 && elements.portfolioDailyPnl) {
+        let history = JSON.parse(localStorage.getItem('portfolio_history') || '[]');
+        const now = new Date();
+        const sgtTime = new Date(now.getTime() + now.getTimezoneOffset() * 60000 + (8 * 60 * 60 * 1000));
+        const logicalDate = new Date(sgtTime.getTime() - 4 * 60 * 60 * 1000);
+        const dateStr = logicalDate.toISOString().split('T')[0];
+        const sgtHour = sgtTime.getHours();
+        
+        let todaySnapshot = history.find(h => h.date === dateStr);
+        if (todaySnapshot) {
+            if (sgtHour >= 4 && sgtHour < 20) todaySnapshot.value = totalValue;
+        } else {
+            history.push({ date: dateStr, value: totalValue });
+            if (history.length > 30) history.shift();
+        }
+        localStorage.setItem('portfolio_history', JSON.stringify(history));
+
+        const pastSnapshots = history.filter(h => h.date < dateStr).sort((a,b) => b.date.localeCompare(a.date));
+        if (pastSnapshots.length > 0) {
+            const prevValue = pastSnapshots[0].value;
+            const diff = totalValue - prevValue;
+            const pct = prevValue > 0 ? (diff / prevValue) * 100 : 0;
+            const sign = diff >= 0 ? '+' : '-';
+            const colorClass = diff >= 0 ? 'success-text' : 'danger-text';
+            elements.portfolioDailyPnl.className = colorClass;
+            elements.portfolioDailyPnl.textContent = `${sign}${formatCurrency(Math.abs(diff))} (${sign}${Math.abs(pct).toFixed(2)}%)`;
+        } else {
+            elements.portfolioDailyPnl.textContent = '';
+        }
+    } else if (elements.portfolioDailyPnl) {
+        elements.portfolioDailyPnl.textContent = '';
     }
 
     if (document.getElementById('portfolio-active-positions')) document.getElementById('portfolio-active-positions').textContent = state.portfolio.length;

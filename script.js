@@ -113,12 +113,15 @@ function initDOM() {
         pfCurrentPriceInput: document.getElementById('pf-current-price'),
         portfolioModalTitle: document.getElementById('portfolio-modal-title'),
         portfolioTotalValue: document.getElementById('portfolio-total-value'),
-        portfolioDailyPnl: document.getElementById('portfolio-daily-pnl'),
         portfolioTotalCost: document.getElementById('portfolio-total-cost'),
         portfolioUnrealizedPnl: document.getElementById('portfolio-unrealized-pnl'),
         portfolioRoiTrend: document.getElementById('portfolio-roi-trend'),
         portfolioRoi: document.getElementById('portfolio-roi'),
-        portfolioTableBody: document.getElementById('portfolio-table-body')
+        portfolioTableBody: document.getElementById('portfolio-table-body'),
+        btnPortfolioHistory: document.getElementById('btn-portfolio-history'),
+        historyModal: document.getElementById('history-modal'),
+        closeHistoryModal: document.getElementById('close-history-modal'),
+        historyTableBody: document.getElementById('history-table-body')
     };
 }
 
@@ -315,6 +318,15 @@ function setupEventListeners() {
     }
 
     // Portfolio Event Listeners
+    if (elements.btnPortfolioHistory) {
+        elements.btnPortfolioHistory.addEventListener('click', () => {
+            renderHistoryTable();
+            openModal(elements.historyModal);
+        });
+    }
+    if (elements.closeHistoryModal) {
+        elements.closeHistoryModal.addEventListener('click', () => closeModal(elements.historyModal));
+    }
     if (elements.btnAddPortfolio) {
         elements.btnAddPortfolio.addEventListener('click', () => {
             elements.portfolioModalTitle.textContent = 'Add Asset';
@@ -942,20 +954,6 @@ async function renderPortfolio() {
                 });
         }
 
-        const pastSnapshots = history.filter(h => h.date < dateStr).sort((a,b) => b.date.localeCompare(a.date));
-        if (pastSnapshots.length > 0) {
-            const prevValue = pastSnapshots[0].value;
-            const diff = totalValue - prevValue;
-            const pct = prevValue > 0 ? (diff / prevValue) * 100 : 0;
-            const sign = diff >= 0 ? '+' : '-';
-            const colorClass = diff >= 0 ? 'success-text' : 'danger-text';
-            elements.portfolioDailyPnl.className = colorClass;
-            elements.portfolioDailyPnl.textContent = `${sign}${formatCurrency(Math.abs(diff))} (${sign}${Math.abs(pct).toFixed(2)}%)`;
-        } else {
-            elements.portfolioDailyPnl.textContent = '';
-        }
-    } else if (elements.portfolioDailyPnl) {
-        elements.portfolioDailyPnl.textContent = '';
     }
 
     if (document.getElementById('portfolio-active-positions')) document.getElementById('portfolio-active-positions').textContent = state.portfolio.length;
@@ -994,6 +992,43 @@ function formatCurrencySGD(amount) {
 function formatDate(dateString) {
     const options = { month: 'short', day: 'numeric', year: 'numeric' };
     return new Date(dateString).toLocaleDateString('en-US', options);
+}
+
+function renderHistoryTable() {
+    if (!elements.historyTableBody) return;
+
+    const history = state.portfolioHistory.slice(0, 30);
+    
+    if (history.length === 0) {
+        elements.historyTableBody.innerHTML = '<tr><td colspan="3" style="text-align:center; padding: 2rem; color: var(--text-muted);">No history recorded yet! Check back tomorrow once your first snapshot is logged.</td></tr>';
+        return;
+    }
+
+    let html = '';
+    
+    for (let i = 0; i < history.length; i++) {
+        const curr = history[i];
+        let growthHtml = '<span class="text-muted">-</span>';
+        
+        if (i < history.length - 1) {
+            const prev = history[i+1];
+            const diff = curr.value - prev.value;
+            const pct = prev.value > 0 ? (diff / prev.value) * 100 : 0;
+            const sign = diff >= 0 ? '+' : '';
+            const colorClass = diff >= 0 ? 'success-text' : 'danger-text';
+            growthHtml = `<span class="${colorClass}">${sign}${pct.toFixed(2)}%</span>`;
+        }
+        
+        html += `
+            <tr>
+                <td>${formatDate(curr.date)}</td>
+                <td><strong>${formatCurrency(curr.value)}</strong></td>
+                <td>${growthHtml}</td>
+            </tr>
+        `;
+    }
+    
+    elements.historyTableBody.innerHTML = html;
 }
 
 // Run app

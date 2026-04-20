@@ -2,9 +2,14 @@
     <div class="header-actions"
         style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
         <h2>Stock Portfolio</h2>
-        <button class="btn btn-primary" id="btn-add-portfolio">
-            <i class="fa-solid fa-plus"></i> Add Asset
-        </button>
+        <div style="display: flex; gap: 10px;">
+            <button class="btn btn-secondary" id="btn-portfolio-history">
+                <i class="fa-solid fa-clock-rotate-left"></i> History
+            </button>
+            <button class="btn btn-primary" id="btn-add-portfolio">
+                <i class="fa-solid fa-plus"></i> Add Asset
+            </button>
+        </div>
     </div>
 
     <!-- Stats Grid -->
@@ -18,7 +23,6 @@
                 <h2 id="portfolio-total-value">$0.00</h2>
                 <small id="portfolio-total-value-sgd" class="text-muted" style="display:block; margin-top: 4px;">S$0.00
                     SGD</small>
-                <div id="portfolio-daily-pnl" style="margin-top: 8px; font-weight: bold; font-size: 0.9em;"></div>
             </div>
         </div>
         <div class="card stat-card income" style="grid-column: span 1;">

@@ -109,4 +109,30 @@
             </div>
         </div>
     </div>
+
+    <!-- Portfolio History Modal -->
+    <div class="modal-overlay" id="history-modal">
+        <div class="modal glass-panel" style="max-width: 600px;">
+            <div class="modal-header">
+                <h2>Portfolio History</h2>
+                <button class="btn-close" id="close-history-modal"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="modal-body">
+                <div class="table-container" style="max-height: 400px; overflow-y: auto;">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Total Value</th>
+                                <th>Daily Growth (%)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="history-table-body">
+                            <!-- Data populated by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>

@@ -1014,9 +1014,9 @@ function renderHistoryTable() {
             const prev = history[i+1];
             const diff = curr.value - prev.value;
             const pct = prev.value > 0 ? (diff / prev.value) * 100 : 0;
-            const sign = diff >= 0 ? '+' : '';
+            const sign = diff >= 0 ? '+' : '-';
             const colorClass = diff >= 0 ? 'success-text' : 'danger-text';
-            growthHtml = `<span class="${colorClass}">${sign}${pct.toFixed(2)}%</span>`;
+            growthHtml = `<span class="${colorClass}">${sign}${formatCurrency(Math.abs(diff))} (${sign}${Math.abs(pct).toFixed(2)}%)</span>`;
         }
         
         html += `

@@ -10,7 +10,8 @@ let state = {
 
     notes: [],
     portfolio: [],
-    portfolioValueSGD: 0  // Cached live value
+    portfolioValueSGD: 0,  // Cached live value
+    portfolioHistory: []
 };
 let currentUser = null;
 let currentCalDate = new Date();
@@ -406,6 +407,15 @@ async function loadData() {
 
     if (!pfError && pfData) {
         state.portfolio = pfData;
+    }
+
+    const { data: histData, error: histError } = await supabaseClient
+        .from('portfolio_history')
+        .select('*')
+        .order('date', { ascending: false });
+
+    if (!histError && histData) {
+        state.portfolioHistory = histData;
     }
 
     renderAll();
@@ -890,8 +900,8 @@ async function renderPortfolio() {
     }
 
     // --- Portfolio History Snapshot & Daily PnL ---
-    if (totalValue > 0 && elements.portfolioDailyPnl) {
-        let history = JSON.parse(localStorage.getItem('portfolio_history') || '[]');
+    if (totalValue > 0 && elements.portfolioDailyPnl && currentUser) {
+        let history = state.portfolioHistory;
         const now = new Date();
         const sgtTime = new Date(now.getTime() + now.getTimezoneOffset() * 60000 + (8 * 60 * 60 * 1000));
         const logicalDate = new Date(sgtTime.getTime() - 4 * 60 * 60 * 1000);
@@ -899,13 +909,38 @@ async function renderPortfolio() {
         const sgtHour = sgtTime.getHours();
         
         let todaySnapshot = history.find(h => h.date === dateStr);
+        let shouldUpdate = false;
+        let shouldInsert = false;
+
         if (todaySnapshot) {
-            if (sgtHour >= 4 && sgtHour < 20) todaySnapshot.value = totalValue;
+            if (sgtHour >= 4 && sgtHour < 20 && todaySnapshot.value !== totalValue) {
+                todaySnapshot.value = totalValue;
+                shouldUpdate = true;
+            }
         } else {
-            history.push({ date: dateStr, value: totalValue });
-            if (history.length > 30) history.shift();
+            todaySnapshot = { date: dateStr, value: totalValue, user_id: currentUser.id };
+            history.unshift(todaySnapshot);
+            shouldInsert = true;
         }
-        localStorage.setItem('portfolio_history', JSON.stringify(history));
+
+        if (shouldUpdate) {
+            supabaseClient.from('portfolio_history')
+                .update({ value: totalValue })
+                .eq('id', todaySnapshot.id)
+                .then(({error}) => { if(error) console.error("History update error", error); });
+        } else if (shouldInsert) {
+            supabaseClient.from('portfolio_history')
+                .insert([{ user_id: currentUser.id, date: dateStr, value: totalValue }])
+                .select()
+                .then(({data, error}) => {
+                    if(!error && data && data.length > 0) {
+                        const idx = state.portfolioHistory.findIndex(h => h.date === dateStr);
+                        if(idx !== -1) state.portfolioHistory[idx] = data[0];
+                    } else {
+                        console.error("History insert error", error);
+                    }
+                });
+        }
 
         const pastSnapshots = history.filter(h => h.date < dateStr).sort((a,b) => b.date.localeCompare(a.date));
         if (pastSnapshots.length > 0) {

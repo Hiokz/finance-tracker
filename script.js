@@ -31,7 +31,6 @@ let state = {
     portfolioHistory: []
 };
 let currentUser = null;
-let currentCalDate = new Date();
 
 // DOM Elements Container
 let elements = {};
@@ -81,13 +80,6 @@ function initDOM() {
         currentDate: document.getElementById('current-date'),
 
         dashTotalBalance: document.getElementById('dash-total-balance'),
-
-        calMonthDisplay: document.getElementById('cal-month-display'),
-        calGrid: document.getElementById('pnl-calendar-grid'),
-        calPrevBtn: document.getElementById('cal-prev-month'),
-        calNextBtn: document.getElementById('cal-next-month'),
-
-
 
         // Portfolio DOM
         portfolioModal: document.getElementById('portfolio-modal'),
@@ -238,19 +230,6 @@ function setupEventListeners() {
         });
     });
 
-    // Calendar Navigation
-    if (elements.calPrevBtn) {
-        elements.calPrevBtn.addEventListener('click', () => {
-            currentCalDate.setMonth(currentCalDate.getMonth() - 1);
-            renderPnlCalendar();
-        });
-        elements.calNextBtn.addEventListener('click', () => {
-            currentCalDate.setMonth(currentCalDate.getMonth() + 1);
-            renderPnlCalendar();
-        });
-    }
-
-
     if (elements.totalBalanceCard) {
         elements.totalBalanceCard.addEventListener('click', () => {
             isBalanceHidden = !isBalanceHidden;
@@ -258,22 +237,6 @@ function setupEventListeners() {
             renderDashboard();
         });
     }
-
-    // Toggle Buttons (Income/Expense, Long/Short)
-    document.querySelectorAll('.toggle-group').forEach(group => {
-        group.querySelectorAll('.toggle-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                group.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-                // Sync the hidden input
-                const hiddenInput = group.parentElement.querySelector('input[type="hidden"]');
-                if (hiddenInput) {
-                    hiddenInput.value = btn.dataset.value;
-                }
-            });
-        });
-    });
-
 
     // Portfolio Event Listeners
     if (elements.btnPortfolioHistory) {
@@ -335,21 +298,6 @@ function closeModal(modal) {
     const form = modal.querySelector('form');
     if (form) {
         form.reset();
-        // Also physically reset our custom toggle UI to match the hidden input's default value
-        const toggleGroups = form.querySelectorAll('.toggle-group');
-        toggleGroups.forEach(group => {
-            const hiddenInput = group.parentElement.querySelector('input[type="hidden"]');
-            if (hiddenInput) {
-                const defaultVal = hiddenInput.defaultValue;
-                group.querySelectorAll('.toggle-btn').forEach(btn => {
-                    if (btn.dataset.value === defaultVal) {
-                        btn.classList.add('active');
-                    } else {
-                        btn.classList.remove('active');
-                    }
-                });
-            }
-        });
     }
 }
 
@@ -410,107 +358,6 @@ async function loadData() {
     }
 
     renderAll();
-}
-
-
-// Backtest Submit Handlers
-async function handleNewBacktestSubmit(e) {
-    e.preventDefault();
-    if (!currentUser) return;
-
-    const btn = elements.newBacktestForm.querySelector('button[type="submit"]');
-    btn.disabled = true;
-
-    const name = document.getElementById('bt-session-name').value;
-    const balance = parseFloat(document.getElementById('bt-session-balance').value);
-
-    const { data, error } = await supabaseClient
-        .from('backtest_sessions')
-        .insert([{ user_id: currentUser.id, name: name, initial_balance: balance }])
-        .select();
-
-    if (!error && data) {
-        state.backtests.unshift(data[0]);
-        closeModal(elements.newBacktestModal);
-        renderAll();
-    } else {
-        console.error("Backtest creation error:", error);
-        alert("Failed to create session.");
-    }
-    btn.disabled = false;
-}
-
-window.deleteBacktest = async function (id) {
-    const { error } = await supabaseClient.from('backtest_sessions').delete().eq('id', id);
-    if (!error) {
-        state.backtests = state.backtests.filter(t => t.id !== id);
-        // Cascade removes child trades
-        state.backtestTrades = state.backtestTrades.filter(t => t.session_id !== id);
-        renderAll();
-    }
-}
-
-async function handleBacktestTradeSubmit(e) {
-    e.preventDefault();
-    if (!currentUser || !window.selectedBacktestId) return;
-
-    const btn = elements.backtestTradeForm.querySelector('button[type="submit"]');
-    btn.disabled = true;
-
-    const asset = document.getElementById('bt-td-asset').value;
-    const direction = document.getElementById('bt-td-direction').value;
-    const lots = parseFloat(document.getElementById('bt-td-lots').value);
-    const entry = parseFloat(document.getElementById('bt-td-entry').value);
-    const exit = parseFloat(document.getElementById('bt-td-exit').value);
-    const date = document.getElementById('bt-td-date').value;
-    const notes = document.getElementById('bt-td-notes').value;
-
-    const slRaw = document.getElementById('bt-td-sl').value;
-    const tpRaw = document.getElementById('bt-td-tp').value;
-    const stop_loss = slRaw ? parseFloat(slRaw) : 0;
-    const take_profit = tpRaw ? parseFloat(tpRaw) : 0;
-
-    let pnl = 0;
-    if (direction === 'long') {
-        pnl = (exit - entry) * lots * 100;
-    } else {
-        pnl = (entry - exit) * lots * 100;
-    }
-
-    const payload = {
-        session_id: window.selectedBacktestId,
-        user_id: currentUser.id,
-        asset: asset,
-        direction: direction,
-        entry_price: entry,
-        exit_price: exit,
-        lot_size: lots,
-        stop_loss: stop_loss,
-        take_profit: take_profit,
-        pnl: pnl,
-        notes: notes,
-        date: date
-    };
-
-    const { data, error } = await supabaseClient
-        .from('backtest_trades')
-        .insert([payload])
-        .select();
-
-    if (!error && data) {
-        state.backtestTrades.unshift(data[0]);
-        state.backtestTrades.sort((a, b) => new Date(b.date) - new Date(a.date));
-        closeModal(elements.backtestTradeModal);
-
-        // Form resetting handled automatically by closeModal
-        document.getElementById('bt-td-pnl-preview').value = '';
-
-        renderActiveBacktest();
-    } else {
-        console.error("Backtest trade saving error:", error);
-        alert("Failed to log backtest trade.");
-    }
-    btn.disabled = false;
 }
 
 

@@ -282,12 +282,12 @@ h6 {
     background: var(--primary-gradient);
     color: #ffffff;
     font-weight: 600;
-    box-shadow: 0 4px 15px var(--primary-glow);
+    box-shadow: none;
 }
 
 .btn-primary:hover {
     transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+    box-shadow: none;
     filter: brightness(1.08);
 }
 

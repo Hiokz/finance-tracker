@@ -5,7 +5,6 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // State Management
 let state = {
-    transactions: [],
     portfolio: [],
     portfolioValueSGD: 0,  // Cached live value
     portfolioHistory: []
@@ -22,9 +21,6 @@ async function loadComponents() {
         { id: 'login-placeholder', url: 'components/login.html' },
         { id: 'sidebar-placeholder', url: 'components/sidebar.html' },
         { id: 'dashboard-placeholder', url: 'components/dashboard.html' },
-        { id: 'transactions-placeholder', url: 'components/transactions.html' },
-
-
         { id: 'portfolio-placeholder', url: 'components/portfolio.html' },
         { id: 'modals-placeholder', url: 'components/modals.html' }
     ];
@@ -64,15 +60,6 @@ function initDOM() {
         currentDate: document.getElementById('current-date'),
 
         dashTotalBalance: document.getElementById('dash-total-balance'),
-
-        transactionModal: document.getElementById('transaction-modal'),
-        btnAddTransaction: document.getElementById('btn-add-transaction'),
-        closeTransactionModal: document.getElementById('close-transaction-modal'),
-
-        transactionForm: document.getElementById('transaction-form'),
-
-        transactionsList: document.getElementById('transactions-list'),
-        noTransactions: document.getElementById('no-transactions'),
 
         calMonthDisplay: document.getElementById('cal-month-display'),
         calGrid: document.getElementById('pnl-calendar-grid'),
@@ -254,13 +241,6 @@ function setupEventListeners() {
     });
 
 
-    // Modals
-    elements.btnAddTransaction.addEventListener('click', () => {
-        window.selectedTradeDate = null;
-        openModal(elements.transactionModal);
-    });
-    elements.closeTransactionModal.addEventListener('click', () => closeModal(elements.transactionModal));
-
     // Portfolio Event Listeners
     if (elements.btnPortfolioHistory) {
         elements.btnPortfolioHistory.addEventListener('click', () => {
@@ -337,15 +317,6 @@ function closeModal(modal) {
 
 // Database Operations
 async function loadData() {
-    const { data: txData, error: txError } = await supabaseClient
-        .from('transactions')
-        .select('*')
-        .order('date', { ascending: false });
-
-    if (!txError && txData) {
-        state.transactions = txData;
-    }
-
     const { data: pfData, error: pfError } = await supabaseClient
         .from('portfolio')
         .select('*')
@@ -365,45 +336,6 @@ async function loadData() {
     }
 
     renderAll();
-}
-
-async function handleTransactionSubmit(e) {
-    e.preventDefault();
-    if (!currentUser) return;
-
-    const type = document.getElementById('tx-type').value;
-    const amount = parseFloat(document.getElementById('tx-amount').value);
-    const description = document.getElementById('tx-desc').value;
-    const date = document.getElementById('tx-date').value;
-
-    const btn = elements.transactionForm.querySelector('button[type="submit"]');
-    btn.disabled = true;
-
-    // The category column has been successfully removed from the database, so we insert without it
-    const { data, error } = await supabaseClient
-        .from('transactions')
-        .insert([{ user_id: currentUser.id, type, amount, description, date }])
-        .select();
-
-    if (!error && data) {
-        state.transactions.unshift(data[0]);
-        state.transactions.sort((a, b) => new Date(b.date) - new Date(a.date));
-        closeModal(elements.transactionModal);
-        renderAll();
-    } else {
-        console.error("Error inserting transaction:", error);
-        alert("Failed to save transaction.");
-    }
-
-    btn.disabled = false;
-}
-
-window.deleteTransaction = async function (id) {
-    const { error } = await supabaseClient.from('transactions').delete().eq('id', id);
-    if (!error) {
-        state.transactions = state.transactions.filter(t => t.id !== id);
-        renderAll();
-    }
 }
 
 
@@ -511,55 +443,15 @@ async function handleBacktestTradeSubmit(e) {
 // Core Rendering
 function renderAll() {
     renderDashboard();
-    renderTransactionsTable();
     renderPortfolio();
 }
 
 function renderDashboard() {
-    const income = state.transactions
-        .filter(t => t.type === 'income')
-        .reduce((acc, curr) => acc + Number(curr.amount), 0);
-
-    const expense = state.transactions
-        .filter(t => t.type === 'expense')
-        .reduce((acc, curr) => acc + Number(curr.amount), 0);
-
-    const balance = income - expense + (state.portfolioValueSGD || 0);
+    const balance = state.portfolioValueSGD || 0;
 
     if (elements.dashTotalBalance) {
         elements.dashTotalBalance.textContent = isBalanceHidden ? '****' : formatCurrencySGD(balance);
     }
-}
-
-function renderTransactionsTable() {
-    elements.transactionsList.innerHTML = '';
-
-    if (state.transactions.length === 0) {
-        elements.noTransactions.style.display = 'flex';
-        document.getElementById('transactions-table').style.display = 'none';
-        return;
-    }
-
-    elements.noTransactions.style.display = 'none';
-    document.getElementById('transactions-table').style.display = 'table';
-
-    state.transactions.forEach(t => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-            <td>${formatDate(t.date)}</td>
-            <td><strong>${escapeHTML(t.description)}</strong></td>
-            <td><span class="badge ${escapeHTML(t.type)}">${escapeHTML(t.type)}</span></td>
-            <td class="${escapeHTML(t.type) === 'income' ? 'success-text' : 'danger-text'}">
-                ${escapeHTML(t.type) === 'income' ? '+' : '-'}${formatCurrency(t.amount)}
-            </td>
-            <td>
-                <button class="action-btn delete" onclick="deleteTransaction('${escapeHTML(t.id)}')">
-                    <i class="fa-solid fa-trash"></i>
-                </button>
-            </td>
-        `;
-        elements.transactionsList.appendChild(tr);
-    });
 }
 
 // Portfolio logic

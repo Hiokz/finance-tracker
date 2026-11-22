@@ -14,10 +14,11 @@ try {
     // Ignore storage restriction errors
 }
 
-// Configure Supabase client to use sessionStorage so closing the tab or opening a new tab requires re-login
+// Configure Supabase client to use sessionStorage with a dedicated key so closing the tab or opening a new tab requires re-login
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     auth: {
         storage: window.sessionStorage,
+        storageKey: 'fintracks-session-auth',
         persistSession: true,
         autoRefreshToken: true
     }
@@ -197,6 +198,7 @@ function setupEventListeners() {
     // Logout
     if (elements.btnLogout) {
         elements.btnLogout.addEventListener('click', async () => {
+            sessionStorage.removeItem('fintracks-session-auth');
             await supabaseClient.auth.signOut();
         });
     }

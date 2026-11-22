@@ -19,6 +19,17 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Supabase JS -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        // Immediately purge any legacy persistent Supabase tokens from localStorage
+        try {
+            for (let i = localStorage.length - 1; i >= 0; i--) {
+                const k = localStorage.key(i);
+                if (k && (k.startsWith('sb-') || k.includes('auth-token') || k.includes('supabase'))) {
+                    localStorage.removeItem(k);
+                }
+            }
+        } catch (e) {}
+    </script>
     <!-- Custom CSS -->
     <link rel="stylesheet" href="style.css">
 </head>
@@ -54,7 +65,7 @@
 
     <div id="modals-placeholder"></div>
 
-    <script src="script.js"></script>
+    <script src="script.js?v=2.2.0"></script>
 </body>
 
 </html>

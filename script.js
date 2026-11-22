@@ -6,9 +6,6 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // State Management
 let state = {
     transactions: [],
-
-
-    notes: [],
     portfolio: [],
     portfolioValueSGD: 0,  // Cached live value
     portfolioHistory: []
@@ -29,7 +26,6 @@ async function loadComponents() {
 
 
         { id: 'portfolio-placeholder', url: 'components/portfolio.html' },
-        { id: 'notes-placeholder', url: 'components/notes.html' },
         { id: 'modals-placeholder', url: 'components/modals.html' }
     ];
 
@@ -68,9 +64,6 @@ function initDOM() {
         currentDate: document.getElementById('current-date'),
 
         dashTotalBalance: document.getElementById('dash-total-balance'),
-        dashTotalIncome: document.getElementById('dash-total-income'),
-        dashTotalExpense: document.getElementById('dash-total-expense'),
-
 
         transactionModal: document.getElementById('transaction-modal'),
         btnAddTransaction: document.getElementById('btn-add-transaction'),
@@ -87,19 +80,6 @@ function initDOM() {
         calNextBtn: document.getElementById('cal-next-month'),
 
 
-
-        // Notes DOM
-        noteModal: document.getElementById('note-modal'),
-        closeNoteModal: document.getElementById('close-note-modal'),
-        btnNewNote: document.getElementById('btn-new-note'),
-        noteForm: document.getElementById('note-form'),
-        notesGrid: document.getElementById('notes-grid'),
-        noteModalTitle: document.getElementById('note-modal-title'),
-        noteIdInput: document.getElementById('note-id'),
-        noteColorInput: document.getElementById('note-color'),
-        noteTitleInput: document.getElementById('note-title'),
-        noteContentInput: document.getElementById('note-content'),
-        colorSwatches: document.querySelectorAll('.color-swatch'),
 
         // Portfolio DOM
         portfolioModal: document.getElementById('portfolio-modal'),
@@ -281,42 +261,6 @@ function setupEventListeners() {
     });
     elements.closeTransactionModal.addEventListener('click', () => closeModal(elements.transactionModal));
 
-
-
-    // Notes Event Listeners
-    if (elements.btnNewNote) {
-        elements.btnNewNote.addEventListener('click', () => {
-            elements.noteModalTitle.textContent = 'Take a note';
-            elements.noteIdInput.value = '';
-            elements.noteTitleInput.value = '';
-            elements.noteContentInput.value = '';
-
-            // Reset color to default #1e222d
-            elements.noteColorInput.value = '#1e222d';
-            elements.colorSwatches.forEach(s => s.classList.remove('active'));
-            if (elements.colorSwatches.length > 0) elements.colorSwatches[0].classList.add('active'); // First one is default
-
-            openModal(elements.noteModal);
-        });
-    }
-    if (elements.closeNoteModal) {
-        elements.closeNoteModal.addEventListener('click', () => closeModal(elements.noteModal));
-    }
-    if (elements.noteForm) {
-        elements.noteForm.addEventListener('submit', handleNoteSubmit);
-    }
-
-    // Color Picker Swatches
-    if (elements.colorSwatches) {
-        elements.colorSwatches.forEach(swatch => {
-            swatch.addEventListener('click', () => {
-                elements.colorSwatches.forEach(s => s.classList.remove('active'));
-                swatch.classList.add('active');
-                elements.noteColorInput.value = swatch.dataset.color || '#1e222d';
-            });
-        });
-    }
-
     // Portfolio Event Listeners
     if (elements.btnPortfolioHistory) {
         elements.btnPortfolioHistory.addEventListener('click', () => {
@@ -400,16 +344,6 @@ async function loadData() {
 
     if (!txError && txData) {
         state.transactions = txData;
-    }
-
-
-    const { data: notesData, error: notesError } = await supabaseClient
-        .from('notes')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-    if (!notesError && notesData) {
-        state.notes = notesData;
     }
 
     const { data: pfData, error: pfError } = await supabaseClient
@@ -578,7 +512,6 @@ async function handleBacktestTradeSubmit(e) {
 function renderAll() {
     renderDashboard();
     renderTransactionsTable();
-    renderNotes();
     renderPortfolio();
 }
 
@@ -593,9 +526,9 @@ function renderDashboard() {
 
     const balance = income - expense + (state.portfolioValueSGD || 0);
 
-    elements.dashTotalBalance.textContent = isBalanceHidden ? '****' : formatCurrencySGD(balance);
-    elements.dashTotalIncome.textContent = `+${formatCurrencySGD(income)}`;
-    elements.dashTotalExpense.textContent = `-${formatCurrencySGD(expense)}`;
+    if (elements.dashTotalBalance) {
+        elements.dashTotalBalance.textContent = isBalanceHidden ? '****' : formatCurrencySGD(balance);
+    }
 }
 
 function renderTransactionsTable() {
@@ -627,104 +560,6 @@ function renderTransactionsTable() {
         `;
         elements.transactionsList.appendChild(tr);
     });
-}
-
-
-// Notes logic
-window.editNote = function (id) {
-    const note = state.notes.find(n => n.id === id);
-    if (!note) return;
-
-    elements.noteModalTitle.textContent = 'Edit note';
-    elements.noteIdInput.value = note.id;
-    elements.noteTitleInput.value = note.title;
-    elements.noteContentInput.value = note.content || '';
-    elements.noteColorInput.value = note.color;
-
-    elements.colorSwatches.forEach(s => {
-        if (s.dataset.color === note.color) s.classList.add('active');
-        else s.classList.remove('active');
-    });
-
-    openModal(elements.noteModal);
-};
-
-window.deleteNote = async function (id, event) {
-    if (event) event.stopPropagation(); // prevent opening edit modal
-    const { error } = await supabaseClient.from('notes').delete().eq('id', id);
-    if (!error) {
-        state.notes = state.notes.filter(n => n.id !== id);
-        renderNotes();
-    }
-};
-
-async function handleNoteSubmit(e) {
-    e.preventDefault();
-    if (!currentUser) return;
-
-    const btn = elements.noteForm.querySelector('button[type="submit"]');
-    btn.disabled = true;
-
-    const id = elements.noteIdInput.value;
-    const title = elements.noteTitleInput.value;
-    const content = elements.noteContentInput.value;
-    const color = elements.noteColorInput.value;
-
-    if (id) {
-        // Update
-        const { data, error } = await supabaseClient
-            .from('notes')
-            .update({ title, content, color })
-            .eq('id', id)
-            .select();
-
-        if (!error && data) {
-            const idx = state.notes.findIndex(n => n.id === id);
-            if (idx !== -1) state.notes[idx] = data[0];
-            closeModal(elements.noteModal);
-            renderNotes();
-        } else {
-            console.error("Error updating note:", error);
-            alert("Failed to update note.");
-        }
-    } else {
-        // Insert
-        const { data, error } = await supabaseClient
-            .from('notes')
-            .insert([{ user_id: currentUser.id, title, content, color }])
-            .select();
-
-        if (!error && data) {
-            state.notes.unshift(data[0]);
-            closeModal(elements.noteModal);
-            renderNotes();
-        } else {
-            console.error("Error saving note:", error);
-            alert("Failed to save note.");
-        }
-    }
-
-    btn.disabled = false;
-}
-
-function renderNotes() {
-    if (!elements.notesGrid) return;
-
-    if (state.notes.length === 0) {
-        elements.notesGrid.innerHTML = '<div style="color: var(--text-muted); padding: 20px; grid-column: 1/-1;">No notes yet. Add one!</div>';
-        return;
-    }
-
-    elements.notesGrid.innerHTML = state.notes.map(note => `
-        <div class="note-card" style="background-color: ${escapeHTML(note.color)};" onclick="editNote('${escapeHTML(note.id)}')">
-            <button class="note-delete-btn" onclick="deleteNote('${escapeHTML(note.id)}', event)" title="Delete Note">
-                <i class="fa-solid fa-trash"></i>
-            </button>
-            <h4>${escapeHTML(note.title)}</h4>
-            <p>${escapeHTML(note.content)}</p>
-            <span class="note-date">${formatDate(note.created_at)}</span>
-        </div>
-    `).join('');
 }
 
 // Portfolio logic

@@ -187,8 +187,13 @@ function setupEventListeners() {
             if (e && e.preventDefault) e.preventDefault();
             const targetId = item.getAttribute('data-target');
 
-            // Sync with browser URL for refresh persistence
-            window.location.hash = targetId;
+            // Sync with browser URL for refresh persistence without triggering anchor jumps
+            const routeHash = item.getAttribute('href') || ('#' + targetId);
+            if (window.history && window.history.replaceState) {
+                window.history.replaceState(null, '', routeHash);
+            } else {
+                window.location.hash = routeHash;
+            }
 
             elements.navItems.forEach(nav => nav.classList.remove('active'));
             item.classList.add('active');
@@ -201,6 +206,13 @@ function setupEventListeners() {
                     section.classList.add('active');
                 }
             });
+
+            // Ensure the top of the newly displayed section is always visible
+            const mainContent = document.querySelector('.main-content');
+            if (mainContent) {
+                mainContent.scrollTop = 0;
+            }
+            window.scrollTo(0, 0);
         });
     });
 
@@ -269,7 +281,11 @@ function setupEventListeners() {
     // Restore routing from URL hash on load
     if (window.location.hash) {
         const hash = window.location.hash.substring(1);
-        const activeNav = Array.from(elements.navItems).find(n => n.getAttribute('data-target') === hash);
+        const activeNav = Array.from(elements.navItems).find(n =>
+            n.getAttribute('data-target') === hash ||
+            n.getAttribute('href') === '#' + hash ||
+            n.getAttribute('data-target') === hash + '-section'
+        );
         if (activeNav) activeNav.click();
     }
 }

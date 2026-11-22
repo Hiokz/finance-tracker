@@ -1,7 +1,27 @@
 // Supabase Initialization
 const SUPABASE_URL = 'https://cvzqsgpczhjlgjmundga.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN2enFzZ3BjemhqbGdqbXVuZGdhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3ODQ4MjAsImV4cCI6MjA5MDM2MDgyMH0.HPqLoJmwdvuqaz4tBJWZsp6qqbFL_oK3m4_QkGwGfgE';
-const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// Clear any legacy persistent tokens from localStorage
+try {
+    for (let i = localStorage.length - 1; i >= 0; i--) {
+        const k = localStorage.key(i);
+        if (k && (k.startsWith('sb-') || k.includes('-auth-token'))) {
+            localStorage.removeItem(k);
+        }
+    }
+} catch (e) {
+    // Ignore storage restriction errors
+}
+
+// Configure Supabase client to use sessionStorage so closing the tab or opening a new tab requires re-login
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    auth: {
+        storage: window.sessionStorage,
+        persistSession: true,
+        autoRefreshToken: true
+    }
+});
 
 // State Management
 let state = {

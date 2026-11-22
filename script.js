@@ -323,7 +323,43 @@ async function loadData() {
         .order('ticker', { ascending: true });
 
     if (!pfError && pfData) {
-        state.portfolio = pfData;
+        // Consolidate duplicate tickers if any exist from previous entries
+        const consolidated = [];
+        const seen = new Map();
+        const toDeleteIds = [];
+        const toUpdate = [];
+
+        for (const item of pfData) {
+            const sym = (item.ticker || '').trim().toUpperCase();
+            if (seen.has(sym)) {
+                const primary = seen.get(sym);
+                primary.shares = Math.round((Number(primary.shares) + Number(item.shares)) * 100000) / 100000;
+                toDeleteIds.push(item.id);
+                if (!toUpdate.some(u => u.id === primary.id)) {
+                    toUpdate.push(primary);
+                }
+            } else {
+                item.shares = Number(item.shares);
+                seen.set(sym, item);
+                consolidated.push(item);
+            }
+        }
+
+        // Clean up duplicates in database asynchronously
+        for (const primary of toUpdate) {
+            supabaseClient.from('portfolio')
+                .update({ shares: primary.shares })
+                .eq('id', primary.id)
+                .then(({ error }) => { if (error) console.error("Error updating consolidated shares", error); });
+        }
+        for (const delId of toDeleteIds) {
+            supabaseClient.from('portfolio')
+                .delete()
+                .eq('id', delId)
+                .then(({ error }) => { if (error) console.error("Error deleting duplicate asset", error); });
+        }
+
+        state.portfolio = consolidated;
     }
 
     const { data: histData, error: histError } = await supabaseClient
@@ -482,72 +518,119 @@ async function handlePortfolioSubmit(e) {
     const btn = elements.portfolioForm.querySelector('button[type="submit"]');
     btn.disabled = true;
 
-    const id = elements.portfolioIdInput.value;
-    const ticker = elements.pfTickerInput.value.trim().toUpperCase();
-    const shares = parseFloat(elements.pfSharesInput.value);
+    try {
+        const id = elements.portfolioIdInput.value;
+        const ticker = elements.pfTickerInput.value.trim().toUpperCase();
+        const shares = parseFloat(elements.pfSharesInput.value);
 
-    // 1. Basic Input Validation
-    if (!ticker || isNaN(shares) || shares <= 0) {
-        alert("Please enter a valid ticker and a positive number of shares.");
-        btn.disabled = false;
-        return;
-    }
+        // 1. Basic Input Validation
+        if (!ticker || isNaN(shares) || shares <= 0) {
+            alert("Please enter a valid ticker and a positive number of shares.");
+            return;
+        }
 
-    // 2. Ticker Active Verification
-    btn.textContent = "Verifying Ticker...";
-    const livePriceCheck = await fetchLivePrice(ticker);
-    if (livePriceCheck === 0) {
-        alert(`Invalid Ticker: Could not find any live pricing data for ${ticker}!`);
+        // 2. Ticker Active Verification
+        btn.textContent = "Verifying Ticker...";
+        const livePriceCheck = await fetchLivePrice(ticker);
+        if (livePriceCheck === 0) {
+            alert(`Invalid Ticker: Could not find any live pricing data for ${ticker}!`);
+            return;
+        }
+
+        btn.textContent = "Saving...";
+
+        const avg_price = 0;
+        const current_price = 0;
+
+        if (id) {
+            // Edit mode: check if another position already exists with this ticker
+            const existingOther = state.portfolio.find(p => p.ticker.toUpperCase() === ticker && p.id !== id);
+            if (existingOther) {
+                // Merge shares into existingOther and delete this duplicate row
+                const combinedShares = Math.round((Number(existingOther.shares) + shares) * 100000) / 100000;
+                const { data: updatedData, error: updateError } = await supabaseClient
+                    .from('portfolio')
+                    .update({ shares: combinedShares })
+                    .eq('id', existingOther.id)
+                    .select();
+
+                await supabaseClient.from('portfolio').delete().eq('id', id);
+
+                if (!updateError && updatedData) {
+                    state.portfolio = state.portfolio.filter(p => p.id !== id);
+                    const idx = state.portfolio.findIndex(p => p.id === existingOther.id);
+                    if (idx !== -1) state.portfolio[idx] = updatedData[0];
+                    closeModal(elements.portfolioModal);
+                    renderPortfolio();
+                } else {
+                    console.error("Error updating portfolio:", updateError);
+                    alert("Failed to update asset.");
+                }
+            } else {
+                const payload = { ticker, shares, avg_price, current_price };
+                const { data, error } = await supabaseClient
+                    .from('portfolio')
+                    .update(payload)
+                    .eq('id', id)
+                    .select();
+
+                if (!error && data) {
+                    const idx = state.portfolio.findIndex(p => p.id === id);
+                    if (idx !== -1) state.portfolio[idx] = data[0];
+                    closeModal(elements.portfolioModal);
+                    renderPortfolio();
+                } else {
+                    console.error("Error updating portfolio:", error);
+                    alert("Failed to update asset.");
+                }
+            }
+        } else {
+            // Add mode: check if ticker already exists in portfolio
+            const existingAsset = state.portfolio.find(p => p.ticker.toUpperCase() === ticker);
+            if (existingAsset) {
+                // Add shares on top of existing shares
+                const newShares = Math.round((Number(existingAsset.shares) + shares) * 100000) / 100000;
+                const { data, error } = await supabaseClient
+                    .from('portfolio')
+                    .update({ shares: newShares })
+                    .eq('id', existingAsset.id)
+                    .select();
+
+                if (!error && data) {
+                    const idx = state.portfolio.findIndex(p => p.id === existingAsset.id);
+                    if (idx !== -1) state.portfolio[idx] = data[0];
+                    closeModal(elements.portfolioModal);
+                    renderPortfolio();
+                } else {
+                    console.error("Error adding to existing asset:", error);
+                    alert("Failed to add shares to existing asset.");
+                }
+            } else {
+                // New position
+                const payload = { user_id: currentUser.id, ticker, shares, avg_price, current_price };
+                const { data, error } = await supabaseClient
+                    .from('portfolio')
+                    .insert([payload])
+                    .select();
+
+                if (!error && data) {
+                    state.portfolio.push(data[0]);
+                    state.portfolio.sort((a, b) => a.ticker.localeCompare(b.ticker));
+                    closeModal(elements.portfolioModal);
+                    renderPortfolio();
+                } else {
+                    console.error("Error saving portfolio:", error);
+                    alert("Failed to save asset.");
+                }
+            }
+        }
+    } catch (err) {
+        console.error("Portfolio submit error:", err);
+        alert("An error occurred while saving the asset.");
+    } finally {
         btn.textContent = "Save Portfolio";
         btn.disabled = false;
-        return;
     }
-
-    btn.textContent = "Saving...";
-
-    const avg_price = 0;
-    const current_price = 0;
-
-    const payload = { ticker, shares, avg_price, current_price };
-
-    if (id) {
-        // Update
-        const { data, error } = await supabaseClient
-            .from('portfolio')
-            .update(payload)
-            .eq('id', id)
-            .select();
-
-        if (!error && data) {
-            const idx = state.portfolio.findIndex(p => p.id === id);
-            if (idx !== -1) state.portfolio[idx] = data[0];
-            closeModal(elements.portfolioModal);
-            renderPortfolio();
-        } else {
-            console.error("Error updating portfolio:", error);
-            alert("Failed to update asset.");
-        }
-    } else {
-        // Insert
-        payload.user_id = currentUser.id;
-        const { data, error } = await supabaseClient
-            .from('portfolio')
-            .insert([payload])
-            .select();
-
-        if (!error && data) {
-            state.portfolio.push(data[0]);
-            // sort by ticker
-            state.portfolio.sort((a, b) => a.ticker.localeCompare(b.ticker));
-            closeModal(elements.portfolioModal);
-            renderPortfolio();
-        } else {
-            console.error("Error saving portfolio:", error);
-            alert("Failed to save asset.");
-        }
-    }
-
-    btn.disabled = false;
 }
 
 // Live API configuration using Supabase Edge Function connecting to Yahoo Finance

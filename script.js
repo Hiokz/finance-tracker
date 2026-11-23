@@ -167,7 +167,10 @@ function setupEventListeners() {
 
     function setAuthMode(register) {
         isRegisterMode = register;
-        if (elements.loginError) elements.loginError.style.display = 'none';
+        if (elements.loginError) {
+            elements.loginError.style.display = 'none';
+            elements.loginError.textContent = '';
+        }
         if (elements.authTitle) elements.authTitle.textContent = isRegisterMode ? 'Create Account' : 'FinTracks Access';
         if (elements.authSubtitle) elements.authSubtitle.textContent = isRegisterMode ? 'Register a new username to track your portfolio.' : 'Sign in to sync your financial data.';
         if (elements.authSubmitBtn) elements.authSubmitBtn.textContent = isRegisterMode ? 'Create Account' : 'Sign In';
@@ -189,7 +192,13 @@ function setupEventListeners() {
 
             function showError(msg) {
                 if (elements.loginError) {
-                    elements.loginError.textContent = msg;
+                    let cleanMsg = msg;
+                    if (cleanMsg.toLowerCase().includes('at least 6') || cleanMsg.toLowerCase().includes('least 6 characters')) {
+                        cleanMsg = 'Password must be at least 8 alphanumeric characters (both letters and numbers).';
+                    }
+                    elements.loginError.style.color = '#ef4444';
+                    elements.loginError.style.textAlign = 'center';
+                    elements.loginError.textContent = cleanMsg;
                     elements.loginError.className = 'danger-text';
                     elements.loginError.style.display = 'block';
                 }

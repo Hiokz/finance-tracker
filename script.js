@@ -68,6 +68,8 @@ function initDOM() {
         authTitle: document.getElementById('auth-title'),
         authSubtitle: document.getElementById('auth-subtitle'),
         authSubmitBtn: document.getElementById('auth-submit-btn'),
+        authTogglePrompt: document.getElementById('auth-toggle-prompt'),
+        btnToggleAuthMode: document.getElementById('btn-toggle-auth-mode'),
         btnLogout: document.getElementById('btn-logout'),
         userDisplayEmail: document.getElementById('user-display-email'),
         appWrapper: document.getElementById('app-wrapper'),
@@ -161,29 +163,119 @@ function lockApp() {
 
 
 function setupEventListeners() {
+    let isRegisterMode = false;
+
+    function setAuthMode(register) {
+        isRegisterMode = register;
+        if (elements.loginError) elements.loginError.style.display = 'none';
+        if (elements.authTitle) elements.authTitle.textContent = isRegisterMode ? 'Create Account' : 'FinTracks Access';
+        if (elements.authSubtitle) elements.authSubtitle.textContent = isRegisterMode ? 'Register a new username to track your portfolio.' : 'Sign in to sync your financial data.';
+        if (elements.authSubmitBtn) elements.authSubmitBtn.textContent = isRegisterMode ? 'Create Account' : 'Sign In';
+        if (elements.authTogglePrompt) elements.authTogglePrompt.textContent = isRegisterMode ? 'Already have an account?' : "Don't have an account?";
+        if (elements.btnToggleAuthMode) elements.btnToggleAuthMode.textContent = isRegisterMode ? 'Sign In' : 'Create one';
+    }
+
+    if (elements.btnToggleAuthMode) {
+        elements.btnToggleAuthMode.addEventListener('click', (e) => {
+            e.preventDefault();
+            setAuthMode(!isRegisterMode);
+        });
+    }
+
     // Login Submit
     if (elements.loginForm) {
         elements.loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
 
-            elements.authSubmitBtn.disabled = true;
-            elements.authSubmitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Processing...';
-            elements.loginError.style.display = 'none';
-
-            const rawUsername = elements.loginUsername.value.trim().toLowerCase();
-            const email = `${rawUsername}@fintracks.local`;
-            const password = elements.loginPassword.value;
-
-            const { error: signInError } = await supabaseClient.auth.signInWithPassword({ email, password });
-
-            if (signInError) {
-                elements.loginError.textContent = signInError.message;
-                elements.loginError.className = 'danger-text';
-                elements.loginError.style.display = 'block';
+            function showError(msg) {
+                if (elements.loginError) {
+                    elements.loginError.textContent = msg;
+                    elements.loginError.className = 'danger-text';
+                    elements.loginError.style.display = 'block';
+                }
+                if (elements.authSubmitBtn) {
+                    elements.authSubmitBtn.disabled = false;
+                    elements.authSubmitBtn.textContent = isRegisterMode ? 'Create Account' : 'Sign In';
+                }
             }
 
-            elements.authSubmitBtn.disabled = false;
-            elements.authSubmitBtn.textContent = 'Sign In';
+            const rawUsername = elements.loginUsername ? elements.loginUsername.value.trim().toLowerCase() : '';
+            const password = elements.loginPassword ? elements.loginPassword.value : '';
+
+            if (!rawUsername || !password) {
+                showError('Please enter both your username and password.');
+                return;
+            }
+
+            // Strictly disallow email formats
+            if (rawUsername.includes('@')) {
+                showError('Please enter a username only, not an email.');
+                return;
+            }
+
+            // Validate Username: minimum 4 letters
+            const letterCount = (rawUsername.match(/[a-zA-Z]/g) || []).length;
+            if (rawUsername.length < 4 || letterCount < 4) {
+                showError('Username must contain at least 4 letters.');
+                return;
+            }
+
+            if (!/^[a-zA-Z0-9_]+$/.test(rawUsername)) {
+                showError('Username can only contain letters, numbers, and underscores.');
+                return;
+            }
+
+            // Validate Password: minimum 8 alphanumeric characters (both letters and numbers)
+            if (password.length < 8) {
+                showError('Password must be at least 8 characters long.');
+                return;
+            }
+
+            const hasLetter = /[a-zA-Z]/.test(password);
+            const hasNumber = /[0-9]/.test(password);
+            if (!hasLetter || !hasNumber) {
+                showError('Password must be alphanumeric (contain both letters and numbers).');
+                return;
+            }
+
+            elements.authSubmitBtn.disabled = true;
+            elements.authSubmitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Processing...';
+            if (elements.loginError) elements.loginError.style.display = 'none';
+
+            const email = `${rawUsername}@fintracks.local`;
+
+            try {
+                if (isRegisterMode) {
+                    // Registration
+                    const { data, error: signUpError } = await supabaseClient.auth.signUp({ email, password });
+                    if (signUpError) {
+                        showError(signUpError.message);
+                    } else if (data && data.session) {
+                        // Successfully logged in via onAuthStateChange
+                    } else {
+                        if (elements.loginError) {
+                            elements.loginError.className = 'sub-text';
+                            elements.loginError.style.color = '#10b981';
+                            elements.loginError.textContent = 'Account created successfully! You can now sign in.';
+                            elements.loginError.style.display = 'block';
+                        }
+                        setTimeout(() => setAuthMode(false), 1500);
+                    }
+                } else {
+                    // Sign In
+                    const { error: signInError } = await supabaseClient.auth.signInWithPassword({ email, password });
+                    if (signInError) {
+                        showError(signInError.message);
+                    }
+                }
+            } catch (err) {
+                showError(err.message || 'An error occurred during authentication.');
+            } finally {
+                if (elements.authSubmitBtn) {
+                    elements.authSubmitBtn.disabled = false;
+                    elements.authSubmitBtn.textContent = isRegisterMode ? 'Create Account' : 'Sign In';
+                }
+            }
         });
     }
 

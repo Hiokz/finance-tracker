@@ -7,14 +7,18 @@
         <p class="login-subtext" id="auth-subtitle">Sign in to sync your financial data.</p>
         <form id="login-form">
             <div class="form-group">
-                <input type="text" id="login-username" placeholder="Username" required>
+                <input type="text" id="login-username" placeholder="Enter username (min. 4 letters)" required autocomplete="username">
             </div>
             <div class="form-group">
-                <input type="password" id="login-password" placeholder="Password" required>
+                <input type="password" id="login-password" placeholder="•••••••• (min. 8 alphanumeric)" required autocomplete="current-password">
             </div>
             <div id="login-error" class="danger-text"
                 style="display: none; font-size: 0.85rem; margin-top: -10px; margin-bottom: 15px;"></div>
             <button type="submit" id="auth-submit-btn" class="btn btn-primary btn-block">Sign In</button>
+            <div style="margin-top: 14px; font-size: 0.8rem; color: var(--text-muted); text-align: center;">
+                <span id="auth-toggle-prompt">Don't have an account?</span>
+                <a href="#" id="btn-toggle-auth-mode" style="color: var(--primary); text-decoration: underline; margin-left: 4px;">Create one</a>
+            </div>
         </form>
     </div>
 </div>

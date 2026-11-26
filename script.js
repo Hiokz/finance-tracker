@@ -735,7 +735,7 @@ async function renderPortfolio() {
                 <td>${s.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 5 })}</td>
                 <td>${formatCurrency(curr)}</td>
                 <td><strong class="primary-text">${formatCurrency(mktValue)}</strong></td>
-                <td>
+                <td style="text-align: right; white-space: nowrap;">
                     <button class="action-btn" onclick="editPortfolio('${escapeHTML(asset.id)}')" title="Edit">
                         <i class="fa-solid fa-pen"></i>
                     </button>

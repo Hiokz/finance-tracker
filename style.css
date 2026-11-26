@@ -766,6 +766,17 @@ textarea:focus {
     }
 }
 
+/* Immediate display when session is active (Prevents FOUC/flicker on refresh) */
+html.auth-session-active #app-wrapper {
+    display: flex !important;
+}
+
+html.auth-session-active #login-overlay {
+    display: none !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+}
+
 /* Login Screen */
 .login-overlay {
     position: fixed;

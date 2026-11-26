@@ -144,19 +144,26 @@ async function handleAuthState(session) {
 }
 
 function unlockApp() {
-    elements.loginOverlay.classList.remove('active');
-    setTimeout(() => {
+    document.documentElement.classList.add('auth-session-active');
+    if (elements.loginOverlay) {
+        elements.loginOverlay.classList.remove('active');
         elements.loginOverlay.style.display = 'none';
+    }
+    if (elements.appWrapper) {
         elements.appWrapper.style.display = 'flex';
-    }, 300);
+    }
 }
 
 function lockApp() {
-    elements.appWrapper.style.display = 'none';
-    elements.loginOverlay.style.display = 'flex';
-    setTimeout(() => {
-        elements.loginOverlay.classList.add('active');
-    }, 10);
+    document.documentElement.classList.remove('auth-session-active');
+    if (elements.appWrapper) elements.appWrapper.style.display = 'none';
+    if (elements.loginOverlay) {
+        elements.loginOverlay.style.display = 'flex';
+        requestAnimationFrame(() => {
+            elements.loginOverlay.classList.add('active');
+        });
+        if (elements.loginUsername) elements.loginUsername.focus();
+    }
 }
 
 // Event Listeners

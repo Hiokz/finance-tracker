@@ -31,6 +31,14 @@
                 }
             }
         } catch (e) {}
+
+        // Immediate Auth Session Check (Prevents login screen flash on refresh)
+        try {
+            var rawSession = sessionStorage.getItem('fintracks-session-auth');
+            if (rawSession && rawSession.indexOf('access_token') !== -1) {
+                document.documentElement.classList.add('auth-session-active');
+            }
+        } catch (e) {}
     </script>
     <!-- Custom CSS -->
     <link rel="stylesheet" href="style.css">

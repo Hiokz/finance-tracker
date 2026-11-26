@@ -437,7 +437,8 @@ h6 {
     -webkit-overflow-scrolling: touch;
 }
 
-.table-card {
+.table-card,
+.card.table-container {
     padding: 0;
     overflow: hidden;
 }
@@ -646,12 +647,33 @@ textarea:focus {
 }
 
 @media (max-width: 768px) {
-    .dashboard-grid {
-        grid-template-columns: 1fr !important;
+    html, body {
+        height: auto;
+        min-height: 100vh;
+        overflow-x: hidden;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
     }
 
     .app-container {
+        height: auto;
+        min-height: 100vh;
         flex-direction: column;
+        overflow: visible;
+    }
+
+    .main-content {
+        height: auto;
+        min-height: auto;
+        flex: 1;
+        overflow: visible;
+        padding: 16px;
+    }
+
+    .dashboard-grid {
+        grid-template-columns: 1fr !important;
+        gap: 16px;
+        margin-bottom: 20px;
     }
 
     .sidebar {
@@ -702,8 +724,40 @@ textarea:focus {
         font-size: 0.85rem;
     }
 
-    .main-content {
-        padding: 16px;
+    .top-header {
+        margin-bottom: 20px;
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .top-header .header-actions {
+        flex-direction: row !important;
+        align-items: center !important;
+        gap: 8px;
+    }
+
+    .top-header .header-actions .btn-icon {
+        flex: none !important;
+        width: 40px !important;
+        height: 40px !important;
+    }
+
+    #portfolio-section .header-actions {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 14px;
+    }
+
+    #portfolio-section .header-actions > div {
+        width: 100%;
+        display: flex;
+        gap: 8px;
+    }
+
+    #portfolio-section .header-actions .btn {
+        flex: 1;
+        justify-content: center;
     }
 
     .form-row {
@@ -711,21 +765,13 @@ textarea:focus {
         gap: 0;
     }
 
-    .header-actions {
-        flex-direction: column;
-        align-items: flex-start !important;
-        gap: 12px;
+    .card.table-container {
+        padding: 0 !important;
     }
 
-    .header-actions > div {
-        width: 100%;
-        display: flex;
-        gap: 8px;
-    }
-
-    .header-actions .btn {
-        flex: 1;
-        justify-content: center;
+    .table-container {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
     }
 
     .data-table {
@@ -733,8 +779,9 @@ textarea:focus {
     }
 
     .modal {
-        width: calc(100% - 32px);
-        margin: 16px;
+        width: calc(100% - 32px) !important;
+        max-width: 100% !important;
+        margin: 16px auto !important;
         max-height: 90vh;
         overflow-y: auto;
     }
@@ -745,12 +792,36 @@ textarea:focus {
         padding: 12px;
     }
 
+    .sidebar {
+        padding: 10px 12px;
+    }
+
+    .nav-menu {
+        gap: 6px;
+    }
+
+    .nav-item {
+        padding: 6px 10px;
+    }
+
+    .header-title h1 {
+        font-size: 1.4rem;
+    }
+
     .balance-amount {
-        font-size: 2rem;
+        font-size: 1.85rem;
     }
 
     .card {
-        padding: 16px;
+        padding: 14px;
+    }
+
+    .card.table-container {
+        padding: 0 !important;
+    }
+
+    #portfolio-section .header-actions > div {
+        flex-direction: column;
     }
 
     .login-container {
@@ -761,8 +832,8 @@ textarea:focus {
 
     .data-table th,
     .data-table td {
-        padding: 10px 14px;
-        font-size: 0.825rem;
+        padding: 10px 12px;
+        font-size: 0.8rem;
     }
 }
 

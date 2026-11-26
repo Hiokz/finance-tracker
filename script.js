@@ -45,16 +45,17 @@ async function loadComponents() {
         { id: 'modals-placeholder', url: 'components/modals.html' }
     ];
 
-    for (const comp of componentsToLoad) {
+    await Promise.all(componentsToLoad.map(async (comp) => {
         try {
             const response = await fetch(`${comp.url}?v=${Date.now()}`);
             if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
             const html = await response.text();
-            document.getElementById(comp.id).outerHTML = html;
+            const el = document.getElementById(comp.id);
+            if (el) el.outerHTML = html;
         } catch (error) {
             console.error(`Failed to load component ${comp.url}:`, error);
         }
-    }
+    }));
 }
 
 // Map DOM Elements after Injection

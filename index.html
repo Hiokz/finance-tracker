@@ -45,14 +45,72 @@
 </head>
 
 <body>
-    <div id="login-placeholder"></div>
+    <!-- Login Screen Overlay -->
+    <div id="login-overlay" class="login-overlay glass-panel" style="display: none;">
+        <div class="login-container">
+            <div class="logo">
+                <i class="fa-solid fa-lock logo-icon"></i>
+                <h2 id="auth-title">FinTracks Access</h2>
+            </div>
+            <p class="login-subtext" id="auth-subtitle">Sign in to sync your financial data.</p>
+            <form id="login-form">
+                <div class="form-group">
+                    <input type="text" id="login-username" placeholder="Enter username (min. 4 letters)" required autocomplete="username">
+                </div>
+                <div class="form-group">
+                    <input type="password" id="login-password" placeholder="•••••••• (min. 8 alphanumeric)" required autocomplete="current-password">
+                </div>
+                <div id="login-error" class="danger-text"
+                    style="display: none; font-size: 0.85rem; margin-top: -10px; margin-bottom: 15px; text-align: center; color: #ef4444; font-weight: 500; line-height: 1.4;"></div>
+                <button type="submit" id="auth-submit-btn" class="btn btn-primary btn-block">Sign In</button>
+                <div style="margin-top: 14px; font-size: 0.8rem; color: var(--text-muted); text-align: center;">
+                    <span id="auth-toggle-prompt">Don't have an account?</span>
+                    <a href="#" id="btn-toggle-auth-mode" style="color: var(--primary); text-decoration: underline; margin-left: 4px;">Create one</a>
+                </div>
+            </form>
+        </div>
+    </div>
 
+    <!-- Application Layout -->
     <div class="app-container" id="app-wrapper" style="display: none;">
         <!-- Mobile Sidebar Backdrop Overlay -->
         <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
 
-        <div id="sidebar-placeholder"></div>
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar glass-panel">
+            <div class="logo">
+                <i class="fa-solid fa-chart-line logo-icon"></i>
+                <h2>FinTracks</h2>
+                <button class="sidebar-close-btn" id="btn-close-sidebar" aria-label="Close navigation menu">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
 
+            <nav class="nav-menu">
+                <a href="#dashboard" class="nav-item active" data-target="dashboard-section">
+                    <i class="fa-solid fa-house"></i>
+                    <span>Dashboard</span>
+                </a>
+                <a href="#portfolio" class="nav-item" data-target="portfolio-section">
+                    <i class="fa-solid fa-briefcase"></i>
+                    <span>Stock Portfolio</span>
+                </a>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="user-profile" style="justify-content: center;">
+                    <div class="user-info" style="text-align: center;">
+                        <p class="user-name" id="user-display-email" style="font-size: 1.1rem;">Welcome! User</p>
+                    </div>
+                </div>
+                <button id="btn-logout" class="btn btn-block"
+                    style="margin-top: 16px; background: var(--danger-bg); color: var(--danger); border: 1px solid rgba(239, 68, 68, 0.2);">
+                    <i class="fa-solid fa-right-from-bracket"></i> Sign Out
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
         <main class="main-content">
             <header class="top-header">
                 <div class="header-left">
@@ -74,16 +132,180 @@
                 </div>
             </header>
 
+            <script>
+                // Synchronous Date & Section Hash Setup (Prevents '--' and initial title flash on refresh)
+                (function() {
+                    try {
+                        var dateEl = document.getElementById('current-date');
+                        if (dateEl) {
+                            var opts = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+                            dateEl.textContent = new Date().toLocaleDateString('en-US', opts);
+                        }
+                        var hash = window.location.hash;
+                        if (hash === '#portfolio' || hash === '#portfolio-section') {
+                            var titleEl = document.getElementById('page-title');
+                            if (titleEl) titleEl.textContent = 'Stock Portfolio';
+                            var d = document.getElementById('dashboard-section');
+                            var p = document.getElementById('portfolio-section');
+                            if (d && p) {
+                                d.classList.remove('active');
+                                p.classList.add('active');
+                            }
+                            var navItems = document.querySelectorAll('.nav-item');
+                            navItems.forEach(function(n) {
+                                if (n.getAttribute('href') === '#portfolio') n.classList.add('active');
+                                else n.classList.remove('active');
+                            });
+                        }
+                    } catch (e) {}
+                })();
+            </script>
+
             <div class="sections-container">
-                <div id="dashboard-placeholder"></div>
-                <div id="portfolio-placeholder"></div>
+                <!-- Dashboard Section -->
+                <section id="dashboard-section" class="content-section active">
+                    <div class="dashboard-grid">
+                        <div class="card stat-card total-balance gradient-border" id="total-balance-card" style="cursor: pointer; user-select: none;">
+                            <div class="card-header">
+                                <h3>Total Balance</h3>
+                                <i class="fa-solid fa-wallet card-icon"></i>
+                            </div>
+                            <div class="card-body">
+                                <h1 class="balance-amount" id="dash-total-balance">$0.00</h1>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Stock Portfolio Section -->
+                <section id="portfolio-section" class="content-section">
+                    <div class="header-actions"
+                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+                        <h2>Stock Portfolio</h2>
+                        <div style="display: flex; gap: 10px;">
+                            <button class="btn btn-secondary" id="btn-portfolio-history">
+                                <i class="fa-solid fa-clock-rotate-left"></i> History
+                            </button>
+                            <button class="btn btn-primary" id="btn-add-portfolio">
+                                <i class="fa-solid fa-plus"></i> Add Asset
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Stats Grid -->
+                    <div class="dashboard-grid" style="grid-template-columns: repeat(3, 1fr); margin-bottom: 24px;">
+                        <div class="card stat-card gradient-border" style="grid-column: span 1;">
+                            <div class="card-header">
+                                <h3>Total Market Value</h3>
+                                <i class="fa-solid fa-wallet card-icon"></i>
+                            </div>
+                            <div class="card-body">
+                                <h2 id="portfolio-total-value">$0.00</h2>
+                                <small id="portfolio-total-value-sgd" class="text-muted" style="display:block; margin-top: 4px;">S$0.00 SGD</small>
+                            </div>
+                        </div>
+                        <div class="card stat-card income" style="grid-column: span 1;">
+                            <div class="card-header">
+                                <h3>Active Positions</h3>
+                                <i class="fa-solid fa-briefcase card-icon text-muted"></i>
+                            </div>
+                            <div class="card-body">
+                                <h2 id="portfolio-active-positions" class="text-main">0</h2>
+                            </div>
+                        </div>
+                        <div class="card stat-card trading-stats" style="grid-column: span 1;">
+                            <div class="card-header">
+                                <h3>Total Assets</h3>
+                                <i class="fa-solid fa-layer-group card-icon"></i>
+                            </div>
+                            <div class="card-body">
+                                <h2 id="portfolio-top-asset" class="primary-text">0</h2>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Ticker</th>
+                                    <th>Shares</th>
+                                    <th><span class="th-desktop">Live Price</span><span class="th-mobile">Price</span></th>
+                                    <th><span class="th-desktop">Market Value</span><span class="th-mobile">Value</span></th>
+                                    <th style="text-align: right;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="portfolio-table-body">
+                                <!-- Data populated by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
             </div>
         </main>
     </div>
 
-    <div id="modals-placeholder"></div>
+    <!-- Modals -->
+    <div id="modals-wrapper">
+        <!-- Portfolio Asset Modal -->
+        <div class="modal-overlay" id="portfolio-modal">
+            <div class="modal glass-panel">
+                <div class="modal-header">
+                    <h2 id="portfolio-modal-title">Add Asset</h2>
+                    <button class="btn-close" id="close-portfolio-modal"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+                <div class="modal-body">
+                    <form id="portfolio-form">
+                        <input type="hidden" id="portfolio-id" value="">
 
-    <script src="script.js?v=2.3.1"></script>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="pf-ticker">Ticker Symbol</label>
+                                <input type="text" id="pf-ticker" required placeholder="e.g. AAPL, NVDA"
+                                    style="text-transform: uppercase;">
+                            </div>
+                            <div class="form-group">
+                                <label for="pf-shares">Number of Shares</label>
+                                <input type="number" id="pf-shares" step="0.00001" min="0" required placeholder="10">
+                            </div>
+                        </div>
+
+                        <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 15px;">
+                            <button type="submit" class="btn btn-primary btn-block">Save Portfolio</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Portfolio History Modal -->
+        <div class="modal-overlay" id="history-modal">
+            <div class="modal glass-panel" style="max-width: 600px;">
+                <div class="modal-header">
+                    <h2>Portfolio History</h2>
+                    <button class="btn-close" id="close-history-modal"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+                <div class="modal-body">
+                    <div class="table-container" style="max-height: 400px; overflow-y: auto;">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Total Value</th>
+                                    <th>Daily Growth</th>
+                                </tr>
+                            </thead>
+                            <tbody id="history-table-body">
+                                <!-- Data populated by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js?v=2.3.2"></script>
 </body>
 
 </html>

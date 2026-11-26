@@ -35,7 +35,7 @@ let currentUser = null;
 // DOM Elements Container
 let elements = {};
 
-// Inject HTML Components
+// Inject HTML Components (Zero-latency: returns immediately if components already present in DOM)
 async function loadComponents() {
     const componentsToLoad = [
         { id: 'login-placeholder', url: 'components/login.html' },
@@ -45,7 +45,10 @@ async function loadComponents() {
         { id: 'modals-placeholder', url: 'components/modals.html' }
     ];
 
-    await Promise.all(componentsToLoad.map(async (comp) => {
+    const placeholders = componentsToLoad.filter(comp => document.getElementById(comp.id));
+    if (placeholders.length === 0) return; // All components already present in DOM!
+
+    await Promise.all(placeholders.map(async (comp) => {
         try {
             const response = await fetch(`${comp.url}?v=${Date.now()}`);
             if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);

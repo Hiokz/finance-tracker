@@ -74,6 +74,12 @@ function initDOM() {
         userDisplayEmail: document.getElementById('user-display-email'),
         appWrapper: document.getElementById('app-wrapper'),
 
+        // Mobile Sidebar Drawer
+        sidebar: document.querySelector('.sidebar'),
+        sidebarBackdrop: document.getElementById('sidebar-backdrop'),
+        btnMobileMenu: document.getElementById('btn-mobile-menu'),
+        btnCloseSidebar: document.getElementById('btn-close-sidebar'),
+
         totalBalanceCard: document.getElementById('total-balance-card'),
 
         navItems: document.querySelectorAll('.nav-item'),
@@ -156,6 +162,10 @@ function unlockApp() {
 
 function lockApp() {
     document.documentElement.classList.remove('auth-session-active');
+    const sidebar = elements.sidebar || document.querySelector('.sidebar');
+    const backdrop = elements.sidebarBackdrop || document.getElementById('sidebar-backdrop');
+    if (sidebar) sidebar.classList.remove('open');
+    if (backdrop) backdrop.classList.remove('active');
     if (elements.appWrapper) elements.appWrapper.style.display = 'none';
     if (elements.loginOverlay) {
         elements.loginOverlay.style.display = 'flex';
@@ -298,8 +308,39 @@ function setupEventListeners() {
     // Logout
     if (elements.btnLogout) {
         elements.btnLogout.addEventListener('click', async () => {
+            closeMobileSidebar();
             sessionStorage.removeItem('fintracks-session-auth');
             await supabaseClient.auth.signOut();
+        });
+    }
+
+    // Mobile Drawer Navigation (TradingHub-style)
+    const mobileBtn = elements.btnMobileMenu || document.getElementById('btn-mobile-menu');
+    const sidebar = elements.sidebar || document.querySelector('.sidebar');
+    const backdrop = elements.sidebarBackdrop || document.getElementById('sidebar-backdrop');
+    const closeBtn = elements.btnCloseSidebar || document.getElementById('btn-close-sidebar');
+
+    function closeMobileSidebar() {
+        if (sidebar) sidebar.classList.remove('open');
+        if (backdrop) backdrop.classList.remove('active');
+    }
+
+    if (mobileBtn && sidebar) {
+        mobileBtn.addEventListener('click', () => {
+            sidebar.classList.toggle('open');
+            if (backdrop) backdrop.classList.toggle('active');
+        });
+    }
+
+    if (closeBtn && sidebar) {
+        closeBtn.addEventListener('click', () => {
+            closeMobileSidebar();
+        });
+    }
+
+    if (backdrop && sidebar) {
+        backdrop.addEventListener('click', () => {
+            closeMobileSidebar();
         });
     }
 
@@ -307,6 +348,7 @@ function setupEventListeners() {
     elements.navItems.forEach(item => {
         item.addEventListener('click', (e) => {
             if (e && e.preventDefault) e.preventDefault();
+            closeMobileSidebar();
             const targetId = item.getAttribute('data-target');
 
             // Sync with browser URL for refresh persistence without triggering anchor jumps

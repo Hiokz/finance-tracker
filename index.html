@@ -48,13 +48,21 @@
     <div id="login-placeholder"></div>
 
     <div class="app-container" id="app-wrapper" style="display: none;">
+        <!-- Mobile Sidebar Backdrop Overlay -->
+        <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+
         <div id="sidebar-placeholder"></div>
 
         <main class="main-content">
             <header class="top-header">
-                <div class="header-title">
-                    <h1 id="page-title">Dashboard</h1>
-                    <p class="date-display" id="current-date">--</p>
+                <div class="header-left">
+                    <button class="mobile-menu-toggle" id="btn-mobile-menu" aria-label="Toggle navigation menu">
+                        <i class="fa-solid fa-bars"></i>
+                    </button>
+                    <div class="header-title">
+                        <h1 id="page-title">Dashboard</h1>
+                        <p class="date-display" id="current-date">--</p>
+                    </div>
                 </div>
                 <div class="header-actions">
                     <button class="btn btn-icon" title="Notifications">
@@ -75,7 +83,7 @@
 
     <div id="modals-placeholder"></div>
 
-    <script src="script.js?v=2.3.0"></script>
+    <script src="script.js?v=2.3.1"></script>
 </body>
 
 </html>

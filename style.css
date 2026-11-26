@@ -231,6 +231,12 @@ h6 {
     margin-bottom: 40px;
 }
 
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
 .header-title h1 {
     font-size: 2rem;
     margin-bottom: 4px;
@@ -239,6 +245,72 @@ h6 {
 .date-display {
     color: var(--text-muted);
     font-size: 0.95rem;
+}
+
+/* Mobile Sidebar Backdrop */
+.sidebar-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.75);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    z-index: 999;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.sidebar-backdrop.active {
+    opacity: 1;
+    visibility: visible;
+}
+
+/* Mobile Menu Toggle Button */
+.mobile-menu-toggle {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-sm);
+    color: var(--text-main);
+    font-size: 1.1rem;
+    cursor: pointer;
+    transition: var(--transition);
+    flex-shrink: 0;
+}
+
+.mobile-menu-toggle:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--primary);
+    border-color: var(--border-color-hover);
+}
+
+/* Sidebar Close Button (Mobile) */
+.sidebar-close-btn {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-sm);
+    color: var(--text-muted);
+    font-size: 1rem;
+    cursor: pointer;
+    transition: var(--transition);
+    margin-left: auto;
+}
+
+.sidebar-close-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-main);
 }
 
 .header-actions {
@@ -676,52 +748,75 @@ textarea:focus {
         margin-bottom: 20px;
     }
 
+    /* Mobile Menu Toggle & Close Button */
+    .mobile-menu-toggle {
+        display: flex;
+    }
+
+    .sidebar-close-btn {
+        display: flex;
+    }
+
+    /* TradingHub-style Slide-Out Mobile Sidebar Drawer */
     .sidebar {
-        width: 100%;
-        height: auto;
-        padding: 12px 16px;
-        flex-direction: row;
-        align-items: center;
-        justify-content: space-between;
-        border-right: none;
-        border-bottom: 1px solid var(--border-color);
-        position: sticky;
+        position: fixed;
         top: 0;
-        z-index: 100;
-        background: rgba(18, 18, 20, 0.95);
-        backdrop-filter: blur(12px);
-        -webkit-backdrop-filter: blur(12px);
+        left: 0;
+        height: 100vh;
+        width: 280px;
+        max-width: 82vw;
+        z-index: 1000;
+        transform: translateX(-100%);
+        transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        box-shadow: 0 0 50px rgba(0, 0, 0, 0.85);
+        background: rgba(14, 14, 17, 0.96);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border-right: 1px solid var(--border-color);
+        border-bottom: none;
+        padding: 24px;
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        justify-content: flex-start;
+    }
+
+    .sidebar.open {
+        transform: translateX(0);
     }
 
     .logo {
-        margin-bottom: 0;
+        margin-bottom: 32px;
+        width: 100%;
+        display: flex;
+        align-items: center;
     }
 
     .logo h2,
     .user-profile,
     .nav-item span {
-        display: none;
+        display: block;
     }
 
     .nav-menu {
-        flex-direction: row;
-        gap: 12px;
+        flex-direction: column;
+        gap: 8px;
     }
 
     .nav-item {
-        padding: 8px 12px;
+        padding: 14px 20px;
     }
 
     .sidebar-footer {
-        padding-top: 0;
-        border-top: none;
-        margin-top: 0;
+        margin-top: auto;
+        padding-top: 24px;
+        border-top: 1px solid var(--border-color);
     }
 
     #btn-logout {
-        margin-top: 0 !important;
-        padding: 6px 12px;
-        font-size: 0.85rem;
+        margin-top: 16px !important;
+        padding: 10px 16px;
+        font-size: 0.95rem;
     }
 
     .top-header {
@@ -792,20 +887,22 @@ textarea:focus {
         padding: 12px;
     }
 
-    .sidebar {
-        padding: 10px 12px;
+    .header-left {
+        gap: 10px;
     }
 
-    .nav-menu {
-        gap: 6px;
-    }
-
-    .nav-item {
-        padding: 6px 10px;
+    .mobile-menu-toggle {
+        width: 36px;
+        height: 36px;
+        font-size: 1rem;
     }
 
     .header-title h1 {
-        font-size: 1.4rem;
+        font-size: 1.35rem;
+    }
+
+    .date-display {
+        font-size: 0.8rem;
     }
 
     .balance-amount {
